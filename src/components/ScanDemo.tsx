@@ -2,22 +2,78 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Upload, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import ResultsView from "./ResultsView";
+
+interface ProductData {
+  productName: string;
+  category: string;
+  description: string;
+  rating: number;
+  reviewCount: number;
+  priceRange: string;
+  bestPrice: string;
+  bestDealer: string;
+  reviewBreakdown: {
+    quality: number;
+    value: number;
+    durability: number;
+  };
+  pros: string[];
+  cons: string[];
+  usageTips: string[];
+  recommendation: string;
+}
 
 const ScanDemo = () => {
   const [showResults, setShowResults] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [productData, setProductData] = useState<ProductData | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  const handleImageCapture = (file: File | null) => {
+  const handleImageCapture = async (file: File | null) => {
     if (!file) return;
+    
     setIsScanning(true);
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsScanning(false);
+    
+    try {
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      const imageData = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+      });
+
+      // Call the edge function to analyze the product
+      const { data, error } = await supabase.functions.invoke('analyze-product', {
+        body: { imageData }
+      });
+
+      if (error) throw error;
+
+      setProductData(data);
       setShowResults(true);
-    }, 2500);
+      
+      toast({
+        title: "Product identified! ✨",
+        description: `Found: ${data.productName}`,
+      });
+      
+    } catch (error) {
+      console.error('Error analyzing product:', error);
+      toast({
+        title: "Oops! 🐾",
+        description: "Failed to analyze the product. Please try again!",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleCameraClick = () => {
@@ -28,8 +84,8 @@ const ScanDemo = () => {
     uploadInputRef.current?.click();
   };
 
-  if (showResults) {
-    return <ResultsView onBack={() => setShowResults(false)} />;
+  if (showResults && productData) {
+    return <ResultsView productData={productData} onBack={() => setShowResults(false)} />;
   }
 
   return (
