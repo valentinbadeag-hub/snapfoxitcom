@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Upload, Sparkles } from "lucide-react";
@@ -7,14 +7,25 @@ import ResultsView from "./ResultsView";
 const ScanDemo = () => {
   const [showResults, setShowResults] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
-  const handleScan = () => {
+  const handleImageCapture = (file: File | null) => {
+    if (!file) return;
     setIsScanning(true);
     // Simulate AI processing
     setTimeout(() => {
       setIsScanning(false);
       setShowResults(true);
     }, 2500);
+  };
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleUploadClick = () => {
+    uploadInputRef.current?.click();
   };
 
   if (showResults) {
@@ -56,7 +67,10 @@ const ScanDemo = () => {
             ) : (
               <div className="space-y-6">
                 {/* Mock Camera View */}
-                <div className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 rounded-2xl overflow-hidden border-2 border-dashed border-primary/30 flex items-center justify-center group cursor-pointer hover:border-primary/60 transition-all">
+                <div 
+                  className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 rounded-2xl overflow-hidden border-2 border-dashed border-primary/30 flex items-center justify-center group cursor-pointer hover:border-primary/60 transition-all"
+                  onClick={handleCameraClick}
+                >
                   <div className="text-center space-y-4">
                     <div className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Camera className="w-10 h-10 text-primary" />
@@ -74,13 +88,30 @@ const ScanDemo = () => {
                   <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary/40 rounded-br-lg" />
                 </div>
                 
+                {/* Hidden file inputs */}
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageCapture(e.target.files?.[0] || null)}
+                />
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageCapture(e.target.files?.[0] || null)}
+                />
+                
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   <Button 
                     variant="hero" 
                     size="lg" 
                     className="w-full group"
-                    onClick={handleScan}
+                    onClick={handleCameraClick}
                   >
                     <Camera className="w-5 h-5 group-hover:animate-wiggle" />
                     Scan Sample Product
@@ -89,6 +120,7 @@ const ScanDemo = () => {
                     variant="outline" 
                     size="lg" 
                     className="w-full"
+                    onClick={handleUploadClick}
                   >
                     <Upload className="w-5 h-5" />
                     Upload Photo
