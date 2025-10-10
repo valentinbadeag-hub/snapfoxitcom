@@ -153,6 +153,26 @@ const ScanDemo = () => {
 
       if (error) throw error;
 
+      // Save to history
+      const scanItem = {
+        id: Date.now().toString(),
+        productName: data.productName,
+        category: data.category,
+        bestPrice: data.bestPrice,
+        currency: data.currency,
+        location: data.userLocation,
+        timestamp: Date.now(),
+        rating: data.rating,
+      };
+
+      const existingHistory = localStorage.getItem('scanHistory');
+      const history = existingHistory ? JSON.parse(existingHistory) : [];
+      const updatedHistory = [scanItem, ...history].slice(0, 20); // Keep last 20 scans
+      localStorage.setItem('scanHistory', JSON.stringify(updatedHistory));
+      
+      // Dispatch event for history component
+      window.dispatchEvent(new Event('scanComplete'));
+
       setProductData(data);
       setShowResults(true);
       

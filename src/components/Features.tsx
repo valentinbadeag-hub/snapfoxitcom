@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Camera, Star, DollarSign, Lightbulb, Heart, Share2 } from "lucide-react";
+import ScanHistory from "./ScanHistory";
 
 const Features = () => {
   const features = [
@@ -48,46 +49,49 @@ const Features = () => {
   ];
 
   return (
-    <section className="py-20 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center space-y-6 mb-16 animate-slide-up">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-            Shopping, but make it <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">sparkly</span>
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Everything you need to shop smarter, wrapped in a delightful experience
-          </p>
-        </div>
-        
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <Card 
-                key={feature.title}
-                className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer animate-scale-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center">
-                      <Icon className={`w-6 h-6 text-${feature.color}`} />
+    <>
+      <ScanHistory />
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-6 mb-16 animate-slide-up">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+              Shopping, but make it <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">sparkly</span>
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Everything you need to shop smarter, wrapped in a delightful experience
+            </p>
+          </div>
+          
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card 
+                  key={feature.title}
+                  className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer animate-scale-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center">
+                        <Icon className={`w-6 h-6 text-${feature.color}`} />
+                      </div>
+                      <span className="text-3xl">{feature.emoji}</span>
                     </div>
-                    <span className="text-3xl">{feature.emoji}</span>
+                    <h3 className="text-xl font-semibold text-foreground">
+                      {feature.title}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-              </Card>
-            );
-          })}
+                </Card>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
 
