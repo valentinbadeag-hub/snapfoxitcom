@@ -59,12 +59,19 @@ const ScanDemo = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const handleBackToScan = () => {
+      setShowResults(false);
+      setProductData(null);
+    };
+
     window.addEventListener('triggerCamera', handleTriggerCamera);
     window.addEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
+    window.addEventListener('backToScan', handleBackToScan);
     
     return () => {
       window.removeEventListener('triggerCamera', handleTriggerCamera);
       window.removeEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
+      window.removeEventListener('backToScan', handleBackToScan);
     };
   }, []);
 

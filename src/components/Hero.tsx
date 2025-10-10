@@ -15,10 +15,13 @@ const Hero = () => {
           <div 
             className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full shadow-[var(--shadow-glow)] animate-pulse-soft mb-6 cursor-pointer hover:scale-110 transition-transform active:scale-95"
             onClick={() => {
+              // First go back to main scan view if viewing results
+              window.dispatchEvent(new Event('backToScan'));
+              // Then scroll and trigger camera
               document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
               setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('triggerCamera'));
-              }, 500);
+              }, 600);
             }}
             title="Click to scan a product"
           >
