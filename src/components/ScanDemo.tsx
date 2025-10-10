@@ -15,6 +15,12 @@ interface ProductData {
   priceRange: string;
   bestPrice: string;
   bestDealer: string;
+  dealerDistance?: string;
+  currency: string;
+  userLocation?: {
+    city: string;
+    country: string;
+  };
   reviewBreakdown: {
     quality: number;
     value: number;
@@ -24,6 +30,11 @@ interface ProductData {
   cons: string[];
   usageTips: string[];
   recommendation: string;
+  nearbyStores?: Array<{
+    name: string;
+    price: string;
+    distance: string;
+  }>;
 }
 
 const ScanDemo = () => {
@@ -33,6 +44,30 @@ const ScanDemo = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const getUserLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        console.log('Geolocation not supported');
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log('Location access denied or unavailable:', error);
+          resolve(null);
+        },
+        { timeout: 5000, enableHighAccuracy: false }
+      );
+    });
+  };
 
   const handleImageCapture = async (file: File | null) => {
     if (!file) return;
@@ -49,9 +84,18 @@ const ScanDemo = () => {
         reader.onerror = reject;
       });
 
+      // Get user location
+      const location = await getUserLocation();
+
       // Call the edge function to analyze the product
       const { data, error } = await supabase.functions.invoke('analyze-product', {
-        body: { imageData }
+        body: { 
+          imageData,
+          location: location ? {
+            latitude: location.latitude,
+            longitude: location.longitude
+          } : undefined
+        }
       });
 
       if (error) throw error;

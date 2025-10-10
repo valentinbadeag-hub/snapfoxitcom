@@ -11,14 +11,14 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData } = await req.json();
+    const { imageData, location } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Analyzing product image...');
+    console.log('Analyzing product image with location:', location ? 'provided' : 'not provided');
 
     // Call Lovable AI with vision capabilities
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -32,7 +32,9 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a product analysis expert. Analyze product images and return detailed information in JSON format.
+            content: `You are a product analysis expert with location-aware capabilities. Analyze product images and return detailed information in JSON format.
+${location ? `User location: latitude ${location.latitude}, longitude ${location.longitude}. Provide prices in the local currency and find stores within 100km radius.` : 'No location provided. Use USD and general store information.'}
+
 Your response must be valid JSON with this exact structure:
 {
   "productName": "Brand and product name",
@@ -40,9 +42,12 @@ Your response must be valid JSON with this exact structure:
   "description": "Brief 2-3 sentence description",
   "rating": 4.2,
   "reviewCount": 1250,
-  "priceRange": "$20-$30",
-  "bestPrice": "$24.99",
-  "bestDealer": "Amazon",
+  "currency": "${location ? 'Local currency symbol (e.g., €, £, ¥, $)' : '$'}",
+  "priceRange": "20-30 in local currency",
+  "bestPrice": "24.99 in local currency",
+  "bestDealer": "Store name",
+  "dealerDistance": "${location ? 'Distance in km (e.g., 2.5 km away)' : 'Online'}",
+  "userLocation": ${location ? '{"city": "Detected city", "country": "Detected country"}' : 'null'},
   "reviewBreakdown": {
     "quality": 85,
     "value": 70,
@@ -51,8 +56,15 @@ Your response must be valid JSON with this exact structure:
   "pros": ["Pro 1", "Pro 2", "Pro 3"],
   "cons": ["Con 1", "Con 2"],
   "usageTips": ["Tip 1", "Tip 2", "Tip 3"],
-  "recommendation": "A personalized recommendation sentence"
-}`
+  "recommendation": "A personalized recommendation sentence",
+  "nearbyStores": [
+    {"name": "Store 1", "price": "25.99", "distance": "1.2 km"},
+    {"name": "Store 2", "price": "26.50", "distance": "3.8 km"},
+    {"name": "Store 3", "price": "27.99", "distance": "5.1 km"}
+  ]
+}
+
+${location ? 'IMPORTANT: All stores must be within 100km radius. Convert prices to local currency based on the detected region. Include distance in kilometers.' : 'Provide general online store pricing in USD.'}`
           },
           {
             role: 'user',

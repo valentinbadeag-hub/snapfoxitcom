@@ -11,6 +11,12 @@ interface ProductData {
   priceRange: string;
   bestPrice: string;
   bestDealer: string;
+  dealerDistance?: string;
+  currency: string;
+  userLocation?: {
+    city: string;
+    country: string;
+  };
   reviewBreakdown: {
     quality: number;
     value: number;
@@ -20,6 +26,11 @@ interface ProductData {
   cons: string[];
   usageTips: string[];
   recommendation: string;
+  nearbyStores?: Array<{
+    name: string;
+    price: string;
+    distance: string;
+  }>;
 }
 
 interface ResultsViewProps {
@@ -60,7 +71,15 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                 {productData.productName}
               </h1>
-              <p className="text-sm text-muted-foreground">{productData.category}</p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{productData.category}</span>
+                {productData.userLocation && (
+                  <>
+                    <span>•</span>
+                    <span>📍 {productData.userLocation.city}, {productData.userLocation.country}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -146,9 +165,17 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                   Best Deal! 🎉
                 </div>
                 <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-xs text-muted-foreground mr-1">{productData.currency}</span>
                   <span className="text-4xl font-bold text-foreground">{productData.bestPrice}</span>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">at {productData.bestDealer}</p>
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm text-muted-foreground">at {productData.bestDealer}</p>
+                  {productData.dealerDistance && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      📍 {productData.dealerDistance}
+                    </p>
+                  )}
+                </div>
                 <Button variant="hero" size="sm" className="w-full">
                   Grab This Deal →
                 </Button>
@@ -158,9 +185,29 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               <div className="mb-4">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Typical Price Range</p>
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4">
-                  <p className="text-2xl font-bold text-foreground">{productData.priceRange}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {productData.currency}{productData.priceRange}
+                  </p>
                 </div>
               </div>
+              
+              {/* Nearby Stores */}
+              {productData.nearbyStores && productData.nearbyStores.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Nearby Stores (within 100km)</p>
+                  <div className="space-y-2">
+                    {productData.nearbyStores.map((store, idx) => (
+                      <div key={idx} className="bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{store.name}</p>
+                          <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-primary">{productData.currency}{store.price}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
           </div>
 
