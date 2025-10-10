@@ -32,8 +32,17 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a product analysis expert with location-aware capabilities. Analyze product images and return detailed information in JSON format.
-${location ? `User location: latitude ${location.latitude}, longitude ${location.longitude}. Provide prices in the local currency and find stores within 100km radius.` : 'No location provided. Use USD and general store information.'}
+            content: `You are a product analysis expert with precise geolocation capabilities. Analyze product images and return detailed information in JSON format.
+
+${location ? `CRITICAL LOCATION INSTRUCTIONS:
+- User coordinates: ${location.latitude}, ${location.longitude}
+- Step 1: Use these EXACT coordinates to determine the user's country and city
+- Step 2: Convert ALL prices to the local currency of that specific country (e.g., EUR for Europe, RON for Romania, USD for USA, GBP for UK, etc.)
+- Step 3: Find only REAL stores that exist within a strict 100km radius of these coordinates
+- Step 4: Provide accurate distances in kilometers from the user's location
+- DO NOT use generic or fictional store names
+- DO NOT provide stores outside the 100km radius
+- ALWAYS use the native currency symbol and format for the detected country` : 'No location provided. Use USD and provide general online store information.'}
 
 Your response must be valid JSON with this exact structure:
 {
@@ -42,12 +51,12 @@ Your response must be valid JSON with this exact structure:
   "description": "Brief 2-3 sentence description",
   "rating": 4.2,
   "reviewCount": 1250,
-  "currency": "${location ? 'Local currency symbol (e.g., €, £, ¥, $)' : '$'}",
-  "priceRange": "20-30 in local currency",
-  "bestPrice": "24.99 in local currency",
-  "bestDealer": "Store name",
-  "dealerDistance": "${location ? 'Distance in km (e.g., 2.5 km away)' : 'Online'}",
-  "userLocation": ${location ? '{"city": "Detected city", "country": "Detected country"}' : 'null'},
+  "currency": "${location ? 'MUST be the actual currency symbol for the detected country (€, £, ¥, $, etc.)' : '$'}",
+  "priceRange": "${location ? 'Price range in LOCAL currency only' : '20-30'}",
+  "bestPrice": "${location ? 'Best price in LOCAL currency with proper formatting' : '24.99'}",
+  "bestDealer": "${location ? 'Real store name that exists near the coordinates' : 'Store name'}",
+  "dealerDistance": "${location ? 'Actual distance in km (e.g., 2.5 km away)' : 'Online'}",
+  "userLocation": ${location ? '{"city": "City name from coordinates", "country": "Country name from coordinates"}' : 'null'},
   "reviewBreakdown": {
     "quality": 85,
     "value": 70,
@@ -58,13 +67,17 @@ Your response must be valid JSON with this exact structure:
   "usageTips": ["Tip 1", "Tip 2", "Tip 3"],
   "recommendation": "A personalized recommendation sentence",
   "nearbyStores": [
-    {"name": "Store 1", "price": "25.99", "distance": "1.2 km"},
-    {"name": "Store 2", "price": "26.50", "distance": "3.8 km"},
-    {"name": "Store 3", "price": "27.99", "distance": "5.1 km"}
+    ${location ? '{"name": "Real store name within 100km", "price": "Price in LOCAL currency", "distance": "X.X km"}' : '{"name": "Online Store", "price": "XX.XX", "distance": "Online"}'}
   ]
 }
 
-${location ? 'IMPORTANT: All stores must be within 100km radius. Convert prices to local currency based on the detected region. Include distance in kilometers.' : 'Provide general online store pricing in USD.'}`
+${location ? `MANDATORY REQUIREMENTS:
+1. Use coordinates ${location.latitude}, ${location.longitude} to determine exact country and city
+2. Research typical retail stores in that specific region
+3. Only include stores within 100km radius with accurate distances
+4. All prices MUST be in the currency of the detected country
+5. Provide 3-5 real nearby stores with realistic local pricing
+6. Distance must be calculated from user coordinates in kilometers` : 'Provide general online store pricing in USD.'}`
           },
           {
             role: 'user',
