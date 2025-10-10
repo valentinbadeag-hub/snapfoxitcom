@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Upload, Sparkles } from "lucide-react";
@@ -44,6 +44,16 @@ const ScanDemo = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Listen for external camera trigger
+  useEffect(() => {
+    const handleTriggerCamera = () => {
+      cameraInputRef.current?.click();
+    };
+
+    window.addEventListener('triggerCamera', handleTriggerCamera);
+    return () => window.removeEventListener('triggerCamera', handleTriggerCamera);
+  }, []);
 
   const getUserLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
     return new Promise((resolve) => {

@@ -12,7 +12,16 @@ const Hero = () => {
       <div className="container mx-auto px-4 py-20 relative z-10">
         <div className="max-w-4xl mx-auto text-center space-y-8 animate-slide-up">
           {/* Logo Icon */}
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full shadow-[var(--shadow-glow)] animate-pulse-soft mb-6">
+          <div 
+            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full shadow-[var(--shadow-glow)] animate-pulse-soft mb-6 cursor-pointer hover:scale-110 transition-transform active:scale-95"
+            onClick={() => {
+              document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('triggerCamera'));
+              }, 500);
+            }}
+            title="Click to scan a product"
+          >
             <Camera className="w-10 h-10 text-white" />
           </div>
           
