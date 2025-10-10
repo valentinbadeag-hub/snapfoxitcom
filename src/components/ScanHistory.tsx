@@ -49,7 +49,13 @@ const ScanHistory = () => {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          setHistory(parsed.slice(0, 6)); // Show last 6 scans
+          // Filter out invalid items (old format or corrupted data)
+          const validItems = parsed.filter((item: any) => 
+            item && 
+            item.productData && 
+            item.productData.productName
+          );
+          setHistory(validItems.slice(0, 6)); // Show last 6 scans
         } catch (error) {
           console.error('Error loading scan history:', error);
         }
