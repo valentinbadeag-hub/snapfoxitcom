@@ -3,18 +3,41 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, DollarSign } from "lucide-react";
 
-interface ScanHistoryItem {
-  id: string;
+interface ProductData {
   productName: string;
   category: string;
+  description: string;
+  rating: number;
+  reviewCount: number;
+  priceRange: string;
   bestPrice: string;
+  bestDealer: string;
+  dealerDistance?: string;
   currency: string;
-  location?: {
+  userLocation?: {
     city: string;
     country: string;
   };
+  reviewBreakdown: {
+    quality: number;
+    value: number;
+    durability: number;
+  };
+  pros: string[];
+  cons: string[];
+  usageTips: string[];
+  recommendation: string;
+  nearbyStores?: Array<{
+    name: string;
+    price: string;
+    distance: string;
+  }>;
+}
+
+interface ScanHistoryItem {
+  id: string;
   timestamp: number;
-  rating: number;
+  productData: ProductData;
 }
 
 const ScanHistory = () => {
@@ -63,6 +86,13 @@ const ScanHistory = () => {
     return `${days}d ago`;
   };
 
+  const handleItemClick = (item: ScanHistoryItem) => {
+    // Dispatch event with product data to show in ScanDemo
+    window.dispatchEvent(new CustomEvent('showHistoryItem', { 
+      detail: item.productData 
+    }));
+  };
+
   return (
     <section className="py-12 bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto px-4">
@@ -77,52 +107,56 @@ const ScanHistory = () => {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {history.map((item) => (
-              <Card 
-                key={item.id}
-                className="p-4 shadow-[var(--shadow-soft)] border border-primary/10 bg-card hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-foreground truncate">
-                        {item.productName}
-                      </h4>
-                      <Badge variant="secondary" className="text-xs mt-1">
-                        {item.category}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-primary">
-                      <span>⭐</span>
-                      <span className="font-medium">{item.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="font-medium text-primary">
-                        {item.bestPrice} {item.currency}
-                      </span>
+            {history.map((item) => {
+              const { productData } = item;
+              return (
+                <Card 
+                  key={item.id}
+                  className="p-4 shadow-[var(--shadow-soft)] border border-primary/10 bg-card hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-foreground truncate">
+                          {productData.productName}
+                        </h4>
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          {productData.category}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-primary">
+                        <span>⭐</span>
+                        <span className="font-medium">{productData.rating.toFixed(1)}</span>
+                      </div>
                     </div>
                     
-                    {item.location && (
+                    <div className="space-y-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="truncate">
-                          {item.location.city}, {item.location.country}
+                        <DollarSign className="w-4 h-4" />
+                        <span className="font-medium text-primary">
+                          {productData.bestPrice} {productData.currency}
                         </span>
                       </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatTimestamp(item.timestamp)}</span>
+                      
+                      {productData.userLocation && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">
+                            {productData.userLocation.city}, {productData.userLocation.country}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatTimestamp(item.timestamp)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </div>
       </div>

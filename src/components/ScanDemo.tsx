@@ -45,14 +45,27 @@ const ScanDemo = () => {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Listen for external camera trigger
+  // Listen for external camera trigger and history item clicks
   useEffect(() => {
     const handleTriggerCamera = () => {
       cameraInputRef.current?.click();
     };
 
+    const handleShowHistoryItem = (event: CustomEvent) => {
+      const data = event.detail;
+      setProductData(data);
+      setShowResults(true);
+      // Scroll to top to show results
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     window.addEventListener('triggerCamera', handleTriggerCamera);
-    return () => window.removeEventListener('triggerCamera', handleTriggerCamera);
+    window.addEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
+    
+    return () => {
+      window.removeEventListener('triggerCamera', handleTriggerCamera);
+      window.removeEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
+    };
   }, []);
 
   const getUserLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
@@ -163,16 +176,11 @@ const ScanDemo = () => {
 
       if (error) throw error;
 
-      // Save to history
+      // Save full product data to history
       const scanItem = {
         id: Date.now().toString(),
-        productName: data.productName,
-        category: data.category,
-        bestPrice: data.bestPrice,
-        currency: data.currency,
-        location: data.userLocation,
         timestamp: Date.now(),
-        rating: data.rating,
+        productData: data, // Store full product data
       };
 
       const existingHistory = localStorage.getItem('scanHistory');
