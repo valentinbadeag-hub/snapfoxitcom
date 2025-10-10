@@ -53,18 +53,25 @@ const ScanDemo = () => {
         return;
       }
 
+      const timeoutId = setTimeout(() => {
+        console.log('Location timeout - proceeding without location');
+        resolve(null);
+      }, 2000); // Reduced to 2 seconds for faster mobile response
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          clearTimeout(timeoutId);
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
         },
         (error) => {
+          clearTimeout(timeoutId);
           console.log('Location access denied or unavailable:', error);
           resolve(null);
         },
-        { timeout: 5000, enableHighAccuracy: false }
+        { timeout: 2000, enableHighAccuracy: false, maximumAge: 60000 }
       );
     });
   };
