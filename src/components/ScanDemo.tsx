@@ -49,18 +49,35 @@ const ScanDemo = () => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         console.log('Geolocation not supported');
+        toast({
+          title: "Location unavailable",
+          description: "Your device doesn't support location services. Showing general prices.",
+          variant: "destructive",
+        });
         resolve(null);
         return;
       }
 
+      // Show loading state for location
+      console.log('Requesting location...');
+
       const timeoutId = setTimeout(() => {
         console.log('Location timeout - proceeding without location');
+        toast({
+          title: "Location timeout",
+          description: "Couldn't get your location. Showing general prices.",
+        });
         resolve(null);
-      }, 2000); // Reduced to 2 seconds for faster mobile response
+      }, 8000); // Increased to 8 seconds for mobile
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
+          console.log('Location obtained:', position.coords.latitude, position.coords.longitude);
+          toast({
+            title: "Location detected! 📍",
+            description: "Finding local deals near you...",
+          });
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -68,10 +85,19 @@ const ScanDemo = () => {
         },
         (error) => {
           clearTimeout(timeoutId);
-          console.log('Location access denied or unavailable:', error);
+          console.error('Location error:', error.code, error.message);
+          toast({
+            title: "Location access denied",
+            description: "Please enable location to see local prices and stores.",
+            variant: "destructive",
+          });
           resolve(null);
         },
-        { timeout: 2000, enableHighAccuracy: false, maximumAge: 60000 }
+        { 
+          timeout: 8000,
+          enableHighAccuracy: true, // Better accuracy for mobile
+          maximumAge: 300000 // 5 minutes cache
+        }
       );
     });
   };
