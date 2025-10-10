@@ -58,45 +58,65 @@ const ScanDemo = () => {
         return;
       }
 
-      // Show loading state for location
-      console.log('Requesting location...');
+      // Show immediate feedback
+      toast({
+        title: "Getting your location...",
+        description: "This helps us find local prices and stores near you.",
+      });
+
+      console.log('Requesting location with high accuracy...');
 
       const timeoutId = setTimeout(() => {
         console.log('Location timeout - proceeding without location');
         toast({
           title: "Location timeout",
-          description: "Couldn't get your location. Showing general prices.",
+          description: "Using general prices. Please enable location permission.",
+          variant: "destructive",
         });
         resolve(null);
-      }, 8000); // Increased to 8 seconds for mobile
+      }, 15000); // Extended to 15 seconds for mobile devices
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
-          console.log('Location obtained:', position.coords.latitude, position.coords.longitude);
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          console.log('✓ Location obtained successfully:', lat, lon, 'accuracy:', position.coords.accuracy, 'm');
           toast({
             title: "Location detected! 📍",
-            description: "Finding local deals near you...",
+            description: "Finding local deals within 100km of you...",
           });
           resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: lat,
+            longitude: lon,
           });
         },
         (error) => {
           clearTimeout(timeoutId);
-          console.error('Location error:', error.code, error.message);
+          let errorMsg = "Unknown error";
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = "Location permission denied. Please enable in settings.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = "Location unavailable. Check GPS/network.";
+              break;
+            case error.TIMEOUT:
+              errorMsg = "Location request timed out.";
+              break;
+          }
+          console.error('Location error:', error.code, error.message, errorMsg);
           toast({
-            title: "Location access denied",
-            description: "Please enable location to see local prices and stores.",
+            title: "Location access issue",
+            description: errorMsg + " Showing general prices.",
             variant: "destructive",
           });
           resolve(null);
         },
         { 
-          timeout: 8000,
-          enableHighAccuracy: true, // Better accuracy for mobile
-          maximumAge: 300000 // 5 minutes cache
+          timeout: 15000,
+          enableHighAccuracy: true, // Critical for accurate location on mobile
+          maximumAge: 0 // Always get fresh location for accurate store finding
         }
       );
     });
