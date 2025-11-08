@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Sparkles, Heart } from "lucide-react";
+import { Camera, Sparkles, Upload } from "lucide-react";
 
 const Hero = () => {
   return (
@@ -57,9 +57,15 @@ const Hero = () => {
             <Button 
               variant="outline" 
               size="lg"
+              onClick={() => {
+                document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('triggerUpload'));
+                }, 600);
+              }}
             >
-              <Heart className="w-5 h-5" />
-              Learn More
+              <Upload className="w-5 h-5" />
+              Upload Photo
             </Button>
           </div>
           

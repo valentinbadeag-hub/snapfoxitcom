@@ -51,6 +51,10 @@ const ScanDemo = () => {
       cameraInputRef.current?.click();
     };
 
+    const handleTriggerUpload = () => {
+      uploadInputRef.current?.click();
+    };
+
     const handleShowHistoryItem = (event: CustomEvent) => {
       const data = event.detail;
       setProductData(data);
@@ -65,11 +69,13 @@ const ScanDemo = () => {
     };
 
     window.addEventListener('triggerCamera', handleTriggerCamera);
+    window.addEventListener('triggerUpload', handleTriggerUpload);
     window.addEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
     window.addEventListener('backToScan', handleBackToScan);
     
     return () => {
       window.removeEventListener('triggerCamera', handleTriggerCamera);
+      window.removeEventListener('triggerUpload', handleTriggerUpload);
       window.removeEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
       window.removeEventListener('backToScan', handleBackToScan);
     };
