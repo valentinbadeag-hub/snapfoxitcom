@@ -2,3 +2,6 @@ project_id = "obsmbhlpoawawuohjvtp"
 
 [functions.analyze-product]
 verify_jwt = false
+
+[functions.product-chat]
+verify_jwt = false
