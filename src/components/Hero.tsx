@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Sparkles, Heart } from "lucide-react";
+import { Camera, Sparkles, Upload } from "lucide-react";
 
 const Hero = () => {
   return (
@@ -42,6 +42,30 @@ const Hero = () => {
             Transform any product photo into instant reviews, prices, and insights. 
             Upload a photo and watch the magic happen! 🦊
           </p>
+          
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+            <Button 
+              variant="hero" 
+              size="lg"
+              className="group"
+              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Sparkles className="w-5 h-5 group-hover:animate-wiggle" />
+              Try Demo Magic
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={() => {
+                // Trigger upload input in ScanDemo component
+                window.dispatchEvent(new CustomEvent('triggerUpload'));
+              }}
+            >
+              <Upload className="w-5 h-5" />
+              Upload Photo
+            </Button>
+          </div>
           
           {/* Feature Pills */}
           <div className="flex flex-wrap gap-3 justify-center pt-4">
