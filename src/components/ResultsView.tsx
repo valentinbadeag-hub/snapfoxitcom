@@ -370,7 +370,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               ) : (
                 <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 text-center">
                   <div className="text-4xl mb-3">💕</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No deals found right now, near by</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No local gems yet 🕵️‍♀️ — but the hunt continues!</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     We couldn't find pricing within 100km. Let AI search online for the best deals in {productData.userLocation?.country || 'your country'}!
                   </p>
