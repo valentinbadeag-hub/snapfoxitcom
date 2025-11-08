@@ -1,11 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink } from "lucide-react";
+import { useEffect } from "react";
 import confetti from "canvas-confetti";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface ProductData {
   productName: string;
@@ -48,41 +45,6 @@ interface ResultsViewProps {
 }
 
 const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
-  const { toast } = useToast();
-  const [question, setQuestion] = useState("");
-  const [chatResponse, setChatResponse] = useState<string[]>([]);
-  const [isLoadingChat, setIsLoadingChat] = useState(false);
-
-  const handleAskQuestion = async () => {
-    if (!question.trim()) return;
-
-    setIsLoadingChat(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('product-chat', {
-        body: {
-          question: question.trim(),
-          productName: productData.productName,
-          productCategory: productData.category,
-          productDescription: productData.description,
-        }
-      });
-
-      if (error) throw error;
-
-      setChatResponse(data.bulletPoints || []);
-      setQuestion("");
-    } catch (error) {
-      console.error('Error asking question:', error);
-      toast({
-        title: "Oops!",
-        description: "Couldn't get an answer right now. Try again?",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingChat(false);
-    }
-  };
-
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     return [...Array(5)].map((_, i) => (
@@ -395,63 +357,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                   Share This Gem
                 </Button>
               </div>
-            </Card>
-
-            {/* AI Conversation Section */}
-            <Card className="p-6 shadow-[var(--shadow-float)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 animate-scale-in" style={{ animationDelay: "0.3s" }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Ask Me Anything</h2>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                Got questions? Ask away and I'll share insights in bite-sized bullets! 💬✨
-              </p>
-
-              {/* Question Input */}
-              <div className="flex gap-2 mb-4">
-                <Input
-                  placeholder="e.g., Is this good for sensitive skin?"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
-                  disabled={isLoadingChat}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleAskQuestion}
-                  disabled={isLoadingChat || !question.trim()}
-                  size="icon"
-                  variant="hero"
-                >
-                  {isLoadingChat ? (
-                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-
-              {/* Chat Response */}
-              {chatResponse.length > 0 && (
-                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4 space-y-2">
-                  {chatResponse.map((point, idx) => (
-                    <div key={idx} className="flex gap-2 items-start">
-                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-xs font-semibold text-primary">{idx + 1}</span>
-                      </div>
-                      <p className="text-sm text-foreground pt-0.5">{point}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isLoadingChat && chatResponse.length === 0 && (
-                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-6 text-center">
-                  <div className="text-3xl mb-2 animate-bounce-gentle">🤔</div>
-                  <p className="text-sm text-muted-foreground">Thinking...</p>
-                </div>
-              )}
             </Card>
           </div>
         </div>
