@@ -9,14 +9,23 @@ const Features = () => {
       title: "Snap & Scan",
       description: "Point your camera at any product and let our AI fox work its magic in seconds.",
       color: "primary",
-      emoji: "📸"
+      emoji: "📸",
+      action: () => {
+        document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+          window.dispatchEvent(new Event('triggerCamera'));
+        }, 600);
+      }
     },
     {
       icon: Star,
       title: "Real Reviews",
       description: "Aggregated insights from thousands of real shoppers—the truth, without the fluff.",
       color: "secondary",
-      emoji: "⭐"
+      emoji: "⭐",
+      action: () => {
+        document.getElementById('recent-scans')?.scrollIntoView({ behavior: 'smooth' });
+      }
     },
     {
       icon: DollarSign,
@@ -70,6 +79,7 @@ const Features = () => {
                   key={feature.title}
                   className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer animate-scale-in"
                   style={{ animationDelay: `${index * 100}ms` }}
+                  onClick={feature.action}
                 >
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
