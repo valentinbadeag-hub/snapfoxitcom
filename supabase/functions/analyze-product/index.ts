@@ -13,6 +13,7 @@ serve(async (req) => {
   try {
     const { imageData, location } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPEN_NINJA_API_KEY = Deno.env.get('OPEN_NINJA_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
@@ -20,7 +21,7 @@ serve(async (req) => {
 
     console.log('Analyzing product image with location:', location ? 'provided' : 'not provided');
 
-    // Call Lovable AI with vision capabilities
+    // Step 1: Call Lovable AI to identify the product
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -32,70 +33,15 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a product analysis expert with real-time geolocation and retail data access. Analyze product images and provide location-aware pricing and store information.
+            content: `You are a product identification expert. Analyze product images and extract key product information.
 
-${location ? `🎯 CRITICAL GEOLOCATION PROTOCOL - FOLLOW EXACTLY:
-
-📍 USER COORDINATES: ${location.latitude}°N, ${location.longitude}°E
-
-STEP 1️⃣ - REVERSE GEOCODING (MANDATORY):
-→ Determine EXACT country from coordinates ${location.latitude}, ${location.longitude}
-→ Determine EXACT city/region from these coordinates
-→ Populate userLocation: {"city": "determined city", "country": "determined country"}
-
-STEP 2️⃣ - CURRENCY LOCALIZATION (MANDATORY):
-→ Identify the official currency of the detected country
-→ Set "currency" field to the native symbol ONLY (€ for Eurozone, £ for UK, $ for USA/Canada, ¥ for Japan/China, ₹ for India, zł for Poland, Kč for Czech, RON for Romania, etc.)
-→ Convert ALL price fields to this local currency
-→ Format prices according to local conventions
-→ NEVER use USD unless coordinates are in USA/territories
-
-STEP 3️⃣ - NEARBY STORES (100KM RADIUS STRICT):
-→ Identify major retailers that:
-  ✓ Physically operate in the detected country/region
-  ✓ Are located within EXACTLY 100 kilometers of ${location.latitude}, ${location.longitude}
-  ✓ Actually stock this product category
-→ Calculate precise distance from user coordinates to each store location
-→ Use full store names (e.g., "Carrefour Market Downtown", "Tesco Extra", "Walmart Supercenter #2341")
-→ Provide 4-5 stores ordered by distance (nearest first)
-→ Include realistic local pricing in the local currency
-
-STEP 4️⃣ - QUALITY VALIDATION:
-✓ Currency symbol matches detected country? 
-✓ All store distances are ≤ 100km?
-✓ Stores are real businesses in this geographic area?
-✓ Prices reflect local market rates?
-
-❌ STRICTLY FORBIDDEN:
-✗ Generic names like "Local Store", "Nearby Shop", "Store A"
-✗ Stores from other countries or outside 100km radius
-✗ Online-only retailers (unless they have physical stores nearby)
-✗ Using wrong currency (e.g., USD for European locations)
-✗ Fictional or placeholder store names
-
-✅ EXAMPLE - For Paris, France (48.8566°N, 2.3522°E):
-currency: "€"
-userLocation: {"city": "Paris", "country": "France"}
-bestPrice: "8.99 €"
-nearbyStores: [
-  {"name": "Monoprix Champs-Élysées", "price": "8.99 €", "distance": "2.3 km"},
-  {"name": "Carrefour City Bastille", "price": "7.49 €", "distance": "4.7 km"},
-  {"name": "Franprix Marais", "price": "9.29 €", "distance": "5.1 km"}
-]` : 'No location provided. Use USD and provide general online store information with "Online" distance.'}
-
-Your response must be valid JSON with this exact structure:
+Your response must be valid JSON with this exact structure (DO NOT include pricing information):
 {
-  "productName": "Brand and product name",
+  "productName": "Full product name with brand and model",
   "category": "Product category",
   "description": "Brief 2-3 sentence description",
   "rating": 4.2,
   "reviewCount": 1250,
-  "currency": "${location ? 'LOCAL currency symbol based on coordinates' : '$'}",
-  "priceRange": "${location ? 'Range in LOCAL currency' : '20-30'}",
-  "bestPrice": "${location ? 'Price in LOCAL currency' : '24.99'}",
-  "bestDealer": "${location ? 'Real store name within 100km' : 'Store name'}",
-  "dealerDistance": "${location ? 'X.X km' : 'Online'}",
-  "userLocation": ${location ? '{"city": "from coordinates", "country": "from coordinates"}' : 'null'},
   "reviewBreakdown": {
     "quality": 85,
     "value": 70,
@@ -104,10 +50,7 @@ Your response must be valid JSON with this exact structure:
   "pros": ["Pro 1", "Pro 2", "Pro 3"],
   "cons": ["Con 1", "Con 2"],
   "usageTips": ["Tip 1", "Tip 2", "Tip 3"],
-  "recommendation": "Personalized recommendation",
-  "nearbyStores": [
-    ${location ? '{"name": "Real store within 100km", "price": "LOCAL currency", "distance": "X.X km"}' : '{"name": "Online Store", "price": "XX.XX", "distance": "Online"}'}
-  ]
+  "recommendation": "Personalized recommendation"
 }`
           },
           {
@@ -115,7 +58,7 @@ Your response must be valid JSON with this exact structure:
             content: [
               {
                 type: 'text',
-                text: 'Analyze this product photo: Identify the exact item (brand, model), extract key details (including barcode if visible), provide aggregated review insights, price information, and usage recommendations.'
+                text: 'Analyze this product photo: Identify the exact item (brand, model), extract key details (including barcode if visible), provide aggregated review insights, pros/cons, and usage recommendations. DO NOT provide pricing information.'
               },
               {
                 type: 'image_url',
@@ -156,10 +99,132 @@ Your response must be valid JSON with this exact structure:
       throw new Error('Failed to parse product data from AI response');
     }
 
-    console.log('Product analysis complete:', productData.productName);
+    console.log('Product identified:', productData.productName);
+
+    // Step 2: Get real pricing data from OpenWeb Ninja API
+    let pricingData: any = {
+      currency: '$',
+      priceRange: 'N/A',
+      bestPrice: 'N/A',
+      bestDealer: 'Not found',
+      dealerDistance: 'Online',
+      nearbyStores: [],
+      priceHistory: null
+    };
+
+    if (OPEN_NINJA_API_KEY && productData.productName) {
+      try {
+        // Determine country - use provided country or map from coordinates, default to US
+        let country = 'US';
+        if (location?.country) {
+          country = location.country;
+        } else if (location?.latitude && location?.longitude) {
+          // Simple coordinate-based country detection (basic implementation)
+          // For production, you'd use a proper reverse geocoding service
+          const lat = location.latitude;
+          const lon = location.longitude;
+          
+          // Basic region detection based on coordinates
+          if (lat >= 36 && lat <= 71 && lon >= -10 && lon <= 40) {
+            country = 'EU'; // Europe
+          } else if (lat >= 24 && lat <= 49 && lon >= -125 && lon <= -66) {
+            country = 'US'; // USA
+          } else if (lat >= -44 && lat <= -10 && lon >= 112 && lon <= 154) {
+            country = 'AU'; // Australia
+          }
+        }
+        
+        const searchQuery = encodeURIComponent(productData.productName);
+        
+        console.log('Fetching real-time pricing for:', productData.productName, 'in', country);
+        
+        const pricingResponse = await fetch(
+          `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${country}&num_results=10`,
+          {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': OPEN_NINJA_API_KEY,
+              'X-RapidAPI-Host': 'real-time-product-search.p.rapidapi.com',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (pricingResponse.ok) {
+          const pricingJson = await pricingResponse.json();
+          console.log('Pricing API response:', JSON.stringify(pricingJson).substring(0, 200));
+
+          if (pricingJson.data?.offers && pricingJson.data.offers.length > 0) {
+            const offers = pricingJson.data.offers;
+            
+            // Find best price (lowest)
+            const validOffers = offers.filter((offer: any) => offer.price && !isNaN(parseFloat(offer.price)));
+            
+            if (validOffers.length > 0) {
+              const sortedOffers = validOffers.sort((a: any, b: any) => 
+                parseFloat(a.price) - parseFloat(b.price)
+              );
+              
+              const bestOffer = sortedOffers[0];
+              const prices = validOffers.map((o: any) => parseFloat(o.price));
+              const avgPrice = (prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2);
+              const minPrice = Math.min(...prices).toFixed(2);
+              const maxPrice = Math.max(...prices).toFixed(2);
+              
+              // Determine currency from the offers or location
+              const currencySymbol = pricingJson.data.currency || bestOffer.currency || '$';
+              
+              pricingData = {
+                currency: currencySymbol,
+                priceRange: `${minPrice} - ${maxPrice}`,
+                bestPrice: parseFloat(bestOffer.price).toFixed(2),
+                bestDealer: bestOffer.store_name || 'Online Store',
+                dealerDistance: 'Online',
+                averagePrice: avgPrice,
+                dealLink: bestOffer.link || bestOffer.product_link,
+                nearbyStores: sortedOffers.slice(0, 5).map((offer: any) => ({
+                  name: offer.store_name || 'Online Store',
+                  price: `${parseFloat(offer.price).toFixed(2)}`,
+                  distance: 'Online',
+                  link: offer.link || offer.product_link
+                })),
+                priceHistory: null // OpenWeb Ninja doesn't provide historical data in this endpoint
+              };
+              
+              console.log('Real pricing data retrieved successfully');
+            }
+          } else {
+            console.log('No offers found in pricing API response');
+          }
+        } else {
+          console.error('Pricing API error:', pricingResponse.status, await pricingResponse.text());
+        }
+      } catch (pricingError) {
+        console.error('Error fetching pricing data:', pricingError);
+        // Continue with fallback pricing data
+      }
+    }
+
+    // Step 3: Determine user location from coordinates
+    let userLocation = null;
+    if (location) {
+      userLocation = {
+        city: location.city || 'Unknown',
+        country: location.country || 'Unknown'
+      };
+    }
+
+    // Step 4: Merge product data with real pricing
+    const finalProductData = {
+      ...productData,
+      ...pricingData,
+      userLocation
+    };
+
+    console.log('Product analysis complete with real pricing');
 
     return new Response(
-      JSON.stringify(productData),
+      JSON.stringify(finalProductData),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
