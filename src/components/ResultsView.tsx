@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, Camera } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
@@ -392,20 +392,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             {/* Action Buttons */}
             <Card className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-card">
               <div className="space-y-3">
-                <Button 
-                  variant="hero" 
-                  size="lg" 
-                  className="w-full"
-                  onClick={() => {
-                    onBack();
-                    setTimeout(() => {
-                      window.dispatchEvent(new Event('triggerCamera'));
-                    }, 300);
-                  }}
-                >
-                  <Camera className="w-5 h-5" />
-                  Snap & Scan Another
-                </Button>
                 <Button variant="outline" size="lg" className="w-full">
                   <Heart className="w-5 h-5" />
                   Love It!
