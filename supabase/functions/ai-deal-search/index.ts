@@ -18,39 +18,63 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('AI searching for online deals:', { productName, category, country });
+    const OPEN_NINJA_API_KEY = Deno.env.get('OPEN_NINJA_API_KEY');
+    if (!OPEN_NINJA_API_KEY) {
+      throw new Error('OPEN_NINJA_API_KEY not configured');
+    }
 
-    // Use AI to search and find the best online deals
+    console.log('Searching for deals:', { productName, category, country });
+
+    // First, get real product data from OpenWeb Ninja API
+    const searchUrl = `https://api.openwebninja.com/v1/product/search?query=${encodeURIComponent(productName)}&country=${country}`;
+    console.log('Fetching from OpenWeb Ninja:', searchUrl);
+    
+    const ninjaResponse = await fetch(searchUrl, {
+      headers: {
+        'X-API-KEY': OPEN_NINJA_API_KEY,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!ninjaResponse.ok) {
+      const errorText = await ninjaResponse.text();
+      console.error('OpenWeb Ninja API error:', errorText);
+      throw new Error(`OpenWeb Ninja API failed: ${ninjaResponse.status}`);
+    }
+
+    const ninjaData = await ninjaResponse.json();
+    console.log('OpenWeb Ninja response:', JSON.stringify(ninjaData, null, 2));
+
+    // Use AI to analyze and format the best deals
     const aiPrompt = `You are a shopping assistant helping users find the best online deals.
 
 Product: ${productName}
 Category: ${category}
 Country: ${country}
 
-Task: Search for and identify the top 3 best online deals for this product currently available in ${country}. 
+Here is real product data from online stores:
+${JSON.stringify(ninjaData, null, 2)}
 
-Focus on:
-1. Major online retailers (Amazon, eBay, Walmart, Target, Best Buy, etc.)
-2. Best prices (lowest first)
-3. Currently available deals with links
-4. Reputable online retailers only
+Task: Extract and return EXACTLY the top 3 best online deals available in ${country}. Focus on:
+1. Best prices (lowest first)
+2. Reputable online retailers
+3. Currently available deals
 
 Return your response as a JSON array with this EXACT structure:
 [
   {
-    "name": "Store/Retailer Name",
+    "name": "Store Name",
     "price": "XX.XX",
     "link": "full URL to product page"
   }
 ]
 
 CRITICAL RULES:
-- Return ONLY the JSON array, no additional text, no markdown code blocks
+- Return ONLY the JSON array, no additional text
 - Include exactly 3 deals (or fewer if less available)
 - Prices must be numbers only (no currency symbols)
-- Links must be complete, valid URLs
-- If no deals found, return empty array: []
-- Do NOT make up fictional prices or stores - only return real, verifiable deals`;
+- Links must be complete URLs
+- If no deals found, return empty array: []`;
 
     console.log('Sending to Lovable AI...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
