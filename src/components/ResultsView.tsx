@@ -57,8 +57,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [question, setQuestion] = useState("");
   const [chatResponse, setChatResponse] = useState<string[]>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
-  const [aiSearchResults, setAiSearchResults] = useState<Array<{ name: string; price: string; link?: string }>>([]);
-  const [isSearchingAI, setIsSearchingAI] = useState(false);
 
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
@@ -87,36 +85,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       });
     } finally {
       setIsLoadingChat(false);
-    }
-  };
-
-  const handleAISearch = async () => {
-    setIsSearchingAI(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-deal-search', {
-        body: {
-          productName: productData.productName,
-          category: productData.category,
-          country: productData.userLocation?.country || 'your country',
-        }
-      });
-
-      if (error) throw error;
-
-      setAiSearchResults(data.deals || []);
-      toast({
-        title: "Search Complete!",
-        description: `Found ${data.deals?.length || 0} online deals`,
-      });
-    } catch (error) {
-      console.error('Error searching for deals:', error);
-      toast({
-        title: "Search Failed",
-        description: "Couldn't find deals right now. Try again?",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearchingAI(false);
     }
   };
 
@@ -370,55 +338,13 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               ) : (
                 <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 text-center">
                   <div className="text-4xl mb-3">💕</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No deals found right now, near by</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No deals found right now</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We couldn't find pricing within 100km. Let AI search online for the best deals in {productData.userLocation?.country || 'your country'}!
+                    We couldn't find pricing for this product online. Try searching on your favorite shopping site!
                   </p>
-                  <Button 
-                    variant="hero" 
-                    size="sm"
-                    onClick={handleAISearch}
-                    disabled={isSearchingAI}
-                  >
-                    {isSearchingAI ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                        Searching...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Enhanced AI Fox Search
-                      </>
-                    )}
+                  <Button variant="outline" size="sm">
+                    Manual Search →
                   </Button>
-
-                  {/* AI Search Results */}
-                  {aiSearchResults.length > 0 && (
-                    <div className="mt-6">
-                      <p className="text-sm font-medium text-muted-foreground mb-3">
-                        🌐 AI-Powered Online Deals
-                      </p>
-                      <div className="space-y-2">
-                        {aiSearchResults.map((deal, idx) => (
-                          <div 
-                            key={idx} 
-                            className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${deal.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
-                            onClick={() => handleStoreClick(deal.link)}
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{deal.name}</p>
-                              <p className="text-xs text-muted-foreground">🤖 AI Found</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-primary">{productData.currency}{deal.price}</p>
-                              {deal.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </Card>
