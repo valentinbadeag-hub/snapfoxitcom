@@ -25,13 +25,14 @@ serve(async (req) => {
 
     console.log('Searching for deals:', { productName, category, country });
 
-    // First, get real product data from OpenWeb Ninja API
-    const searchUrl = `https://api.openwebninja.com/v1/product/search?query=${encodeURIComponent(productName)}&country=${country}`;
+    // First, get real product data from OpenWeb Ninja API (via RapidAPI)
+    const searchUrl = `https://local-business-data.p.rapidapi.com/search?query=${encodeURIComponent(productName)}&limit=10&region=${country.toLowerCase()}`;
     console.log('Fetching from OpenWeb Ninja:', searchUrl);
     
     const ninjaResponse = await fetch(searchUrl, {
       headers: {
-        'X-API-KEY': OPEN_NINJA_API_KEY,
+        'X-RapidAPI-Key': OPEN_NINJA_API_KEY,
+        'X-RapidAPI-Host': 'local-business-data.p.rapidapi.com',
         'Content-Type': 'application/json',
       }
     });
