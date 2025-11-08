@@ -35,8 +35,7 @@ serve(async (req) => {
             content: `You are a product expert assistant. Answer questions about products with specific, actionable information.
 
 CRITICAL RULES:
-- Return ONLY a JSON array of bullet points, nothing else
-- Maximum 7 bullet points
+- Return ONLY a JSON array of exactly 3 bullet points, nothing else
 - Each bullet point should be specific and informative
 - Do NOT include quotes around the text
 - Do NOT include any explanatory text outside the JSON
@@ -52,7 +51,7 @@ Category: ${category}
 Country: ${country || 'US'}
 Question: ${question}
 
-Provide a JSON array of specific bullet points answering this question. Maximum 7 points.`
+Provide a JSON array of exactly 3 specific, informative bullet points answering this question.`
           }
         ],
       }),
@@ -86,8 +85,8 @@ Provide a JSON array of specific bullet points answering this question. Maximum 
         throw new Error('Response is not an array');
       }
       
-      // Limit to 7 bullet points
-      bulletPoints = bulletPoints.slice(0, 7);
+      // Limit to exactly 3 bullet points
+      bulletPoints = bulletPoints.slice(0, 3);
       
       // Clean up any quotes from the bullet points
       bulletPoints = bulletPoints.map((point: string) => 

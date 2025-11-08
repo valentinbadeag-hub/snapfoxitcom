@@ -444,11 +444,13 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
 
                 {/* Answers */}
                 {answers.length > 0 && (
-                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-2">
+                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-3">
                     {answers.map((answer, idx) => (
-                      <div key={idx} className="flex gap-2 items-start">
-                        <span className="text-primary font-semibold flex-shrink-0">•</span>
-                        <p className="text-sm text-foreground">{answer}</p>
+                      <div key={idx} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-primary">{idx + 1}</span>
+                        </div>
+                        <p className="text-sm text-foreground pt-1">{answer}</p>
                       </div>
                     ))}
                   </div>
