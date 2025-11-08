@@ -40,11 +40,6 @@ interface ProductData {
     distance: string;
     link?: string;
   }>;
-  onlineDeals?: Array<{
-    name: string;
-    price: string;
-    link?: string;
-  }>;
 }
 
 interface ResultsViewProps {
@@ -296,38 +291,24 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                     </div>
                   </div>
                   
-                  {/* No Nearby Stores Message */}
-                  {(!productData.nearbyStores || productData.nearbyStores.length === 0) && (
-                    <div className="bg-accent/10 rounded-xl p-4 border border-accent/20 mb-4">
-                      <p className="text-sm text-muted-foreground text-center">
-                        📍 No deals found within 100km of your location
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Online Deals Section */}
-                  {productData.onlineDeals && productData.onlineDeals.length > 0 && (
+                  {/* Nearby Stores */}
+                  {productData.nearbyStores && productData.nearbyStores.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                        🌐 Best Online Deals in {productData.userLocation?.country || 'your country'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-3 italic">
-                        These are online deals available for delivery
-                      </p>
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Available At</p>
                       <div className="space-y-2">
-                        {productData.onlineDeals.map((deal, idx) => (
+                        {productData.nearbyStores.map((store, idx) => (
                           <div 
                             key={idx} 
-                            className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${deal.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
-                            onClick={() => handleStoreClick(deal.link)}
+                            className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${store.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
+                            onClick={() => handleStoreClick(store.link)}
                           >
                             <div>
-                              <p className="text-sm font-medium text-foreground">{deal.name}</p>
-                              <p className="text-xs text-muted-foreground">🌐 Online</p>
+                              <p className="text-sm font-medium text-foreground">{store.name}</p>
+                              <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-primary">{productData.currency}{deal.price}</p>
-                              {deal.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                              <p className="text-sm font-semibold text-primary">{productData.currency}{store.price}</p>
+                              {store.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
                             </div>
                           </div>
                         ))}
