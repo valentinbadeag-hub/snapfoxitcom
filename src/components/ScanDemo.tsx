@@ -51,10 +51,6 @@ const ScanDemo = () => {
       cameraInputRef.current?.click();
     };
 
-    const handleTriggerUpload = () => {
-      uploadInputRef.current?.click();
-    };
-
     const handleShowHistoryItem = (event: CustomEvent) => {
       const data = event.detail;
       setProductData(data);
@@ -69,13 +65,11 @@ const ScanDemo = () => {
     };
 
     window.addEventListener('triggerCamera', handleTriggerCamera);
-    window.addEventListener('triggerUpload', handleTriggerUpload);
     window.addEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
     window.addEventListener('backToScan', handleBackToScan);
     
     return () => {
       window.removeEventListener('triggerCamera', handleTriggerCamera);
-      window.removeEventListener('triggerUpload', handleTriggerUpload);
       window.removeEventListener('showHistoryItem', handleShowHistoryItem as EventListener);
       window.removeEventListener('backToScan', handleBackToScan);
     };
@@ -237,8 +231,17 @@ const ScanDemo = () => {
   }
 
   return (
-    <section id="demo" className="py-12 bg-gradient-to-b from-primary/5 to-background">
-      <div className="container mx-auto px-4">        
+    <section id="demo" className="py-20 bg-gradient-to-b from-primary/5 to-background">
+      <div className="container mx-auto px-4">
+        <div className="max-w-2xl mx-auto text-center space-y-6 mb-12 animate-slide-up">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+            See the Magic ✨
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Try our demo! Upload a product photo and watch pReview work its charm.
+          </p>
+        </div>
+        
         <div className="max-w-xl mx-auto">
           <Card className="p-8 shadow-[var(--shadow-float)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 animate-scale-in">
             {isScanning ? (
