@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink } from "lucide-react";
-import { useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send } from "lucide-react";
+import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProductData {
   productName: string;
@@ -45,6 +48,11 @@ interface ResultsViewProps {
 }
 
 const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
+  const [question, setQuestion] = useState('');
+  const [isAsking, setIsAsking] = useState(false);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const { toast } = useToast();
+
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     return [...Array(5)].map((_, i) => (
@@ -53,6 +61,42 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
         className={`w-8 h-8 ${i < fullStars ? 'fill-secondary text-secondary' : 'text-secondary/30'}`}
       />
     ));
+  };
+
+  const handleAskQuestion = async () => {
+    if (!question.trim()) return;
+
+    setIsAsking(true);
+    setAnswers([]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('product-question', {
+        body: {
+          question: question.trim(),
+          productName: productData.productName,
+          category: productData.category,
+          country: productData.userLocation?.country || 'US'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.bulletPoints) {
+        setAnswers(data.bulletPoints);
+      } else {
+        throw new Error('No answer received');
+      }
+
+    } catch (error) {
+      console.error('Error asking question:', error);
+      toast({
+        title: "Oops! 🐾",
+        description: "Failed to get an answer. Please try again!",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAsking(false);
+    }
   };
 
   // Calculate discount percentage and trigger confetti for great deals
@@ -356,6 +400,59 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                   <Share2 className="w-5 h-5" />
                   Share This Gem
                 </Button>
+              </div>
+            </Card>
+
+            {/* AI Conversation Section */}
+            <Card className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
+              <div className="flex items-center gap-2 mb-4">
+                <MessageSquare className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold text-foreground">Ask About This Product</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Question Input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Is this suitable for sensitive skin?"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
+                    disabled={isAsking}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleAskQuestion}
+                    disabled={isAsking || !question.trim()}
+                    size="icon"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Loading State */}
+                {isAsking && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
+                    </div>
+                    <span>Searching for answers...</span>
+                  </div>
+                )}
+
+                {/* Answers */}
+                {answers.length > 0 && (
+                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-2">
+                    {answers.map((answer, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <span className="text-primary font-semibold flex-shrink-0">•</span>
+                        <p className="text-sm text-foreground">{answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </Card>
           </div>
