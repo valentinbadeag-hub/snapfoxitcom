@@ -109,6 +109,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       bestDealer: 'Not found',
       dealerDistance: 'Online',
       nearbyStores: [],
+      onlineDeals: [],
       priceHistory: null
     };
 
@@ -174,6 +175,13 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               // Determine currency from the offers or location
               const currencySymbol = pricingJson.data.currency || bestOffer.currency || '$';
               
+              // Set online deals (best 3 offers)
+              const onlineDealsData = sortedOffers.slice(0, 3).map((offer: any) => ({
+                name: offer.store_name || 'Online Store',
+                price: `${parseFloat(offer.price).toFixed(2)}`,
+                link: offer.link || offer.product_link
+              }));
+              
               pricingData = {
                 currency: currencySymbol,
                 priceRange: `${minPrice} - ${maxPrice}`,
@@ -182,16 +190,12 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                 dealerDistance: 'Online',
                 averagePrice: avgPrice,
                 dealLink: bestOffer.link || bestOffer.product_link,
-                nearbyStores: sortedOffers.slice(0, 5).map((offer: any) => ({
-                  name: offer.store_name || 'Online Store',
-                  price: `${parseFloat(offer.price).toFixed(2)}`,
-                  distance: 'Online',
-                  link: offer.link || offer.product_link
-                })),
+                nearbyStores: [], // No nearby stores in 100km
+                onlineDeals: onlineDealsData,
                 priceHistory: null // OpenWeb Ninja doesn't provide historical data in this endpoint
               };
               
-              console.log('Real pricing data retrieved successfully');
+              console.log('Real pricing data retrieved successfully with online deals');
             }
           } else {
             console.log('No offers found in pricing API response');
