@@ -71,13 +71,26 @@ const Hero = () => {
           
           {/* Feature Pills */}
           <div className="flex flex-wrap gap-3 justify-center pt-8">
-            {["📸 Snap & Scan", "⭐ Real Reviews", "💰 Best Prices", "🎯 Smart Tips"].map((feature, i) => (
+            {[
+              { text: "📸 Snap & Scan", action: () => {
+                document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('triggerCamera'));
+                }, 600);
+              }},
+              { text: "⭐ Real Reviews", action: () => {
+                document.getElementById('recent-scans')?.scrollIntoView({ behavior: 'smooth' });
+              }},
+              { text: "💰 Best Prices", action: null },
+              { text: "🎯 Smart Tips", action: null }
+            ].map((feature, i) => (
               <div 
-                key={feature}
-                className="px-5 py-2 bg-card rounded-full shadow-[var(--shadow-soft)] text-sm font-medium animate-scale-in border-2 border-primary/20"
+                key={feature.text}
+                className={`px-5 py-2 bg-card rounded-full shadow-[var(--shadow-soft)] text-sm font-medium animate-scale-in border-2 border-primary/20 ${feature.action ? 'cursor-pointer hover:scale-105 hover:border-primary/40 transition-all' : ''}`}
                 style={{ animationDelay: `${i * 100}ms` }}
+                onClick={feature.action || undefined}
               >
-                {feature}
+                {feature.text}
               </div>
             ))}
           </div>
