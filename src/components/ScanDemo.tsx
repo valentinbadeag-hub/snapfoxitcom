@@ -164,13 +164,31 @@ const ScanDemo = () => {
     setIsScanning(true);
     
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      
+      // Convert image to JPEG format for better AI compatibility
       const imageData = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            // Create canvas and convert to JPEG
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Failed to get canvas context'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0);
+            // Convert to JPEG with 90% quality
+            const jpegData = canvas.toDataURL('image/jpeg', 0.9);
+            resolve(jpegData);
+          };
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
       });
 
       // Get user location
