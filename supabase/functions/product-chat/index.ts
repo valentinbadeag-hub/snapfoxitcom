@@ -22,20 +22,50 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPEN_NINJA_API_KEY = Deno.env.get('OPEN_NINJA_API_KEY');
+    
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     console.log('Processing question about:', productName);
 
+    // Fetch real-time product data from OpenWeb Ninja
+    let productData = '';
+    if (OPEN_NINJA_API_KEY) {
+      try {
+        const searchQuery = encodeURIComponent(productName);
+        const apiUrl = `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=US&num_results=3`;
+        
+        const ninjaResponse = await fetch(apiUrl, {
+          headers: {
+            'X-RapidAPI-Key': OPEN_NINJA_API_KEY,
+            'X-RapidAPI-Host': 'api.openwebninja.com',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (ninjaResponse.ok) {
+          const data = await ninjaResponse.json();
+          if (data.offers && data.offers.length > 0) {
+            productData = `\nReal-time market data:\n${data.offers.slice(0, 3).map((offer: any) => 
+              `- ${offer.store_name}: ${offer.price} ${offer.currency || 'USD'}`
+            ).join('\n')}`;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching OpenWeb Ninja data:', error);
+      }
+    }
+
     const systemPrompt = `You are a knowledgeable shopping assistant helping users learn more about products. 
 Product Context:
 - Name: ${productName}
 - Category: ${productCategory || 'Unknown'}
-- Description: ${productDescription || 'N/A'}
+- Description: ${productDescription || 'N/A'}${productData}
 
-Respond to user questions about this product in exactly 5-10 concise bullet points. Each bullet point should be informative and helpful.
-Format your response as a JSON array of strings, where each string is one bullet point.
+Answer the user's question with 3-7 specific, informative bullet points. Be concise and direct.
+Format your response as a JSON array of strings, where each string is one bullet point without any quotes or extra formatting.
 Do not include any other text, just the JSON array.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -78,15 +108,14 @@ Do not include any other text, just the JSON array.`;
         .split('\n')
         .filter((line: string) => line.trim().length > 0)
         .map((line: string) => line.replace(/^[-•*]\s*/, '').trim())
-        .filter((line: string) => line.length > 0)
-        .slice(0, 10);
+        .filter((line: string) => line.length > 0);
     }
 
-    // Ensure we have 5-10 bullet points
-    if (bulletPoints.length < 5) {
-      bulletPoints.push('Feel free to ask more specific questions!');
-    }
-    bulletPoints = bulletPoints.slice(0, 10);
+    // Clean up quotes and limit to 7 bullet points
+    bulletPoints = bulletPoints
+      .map((point: string) => point.replace(/^["']|["']$/g, '').trim())
+      .filter((point: string) => point.length > 0)
+      .slice(0, 7);
 
     return new Response(
       JSON.stringify({ bulletPoints }),
