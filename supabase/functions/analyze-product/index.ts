@@ -1,38 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { imageData, location } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const OPEN_NINJA_API_KEY = Deno.env.get('OPEN_NINJA_API_KEY');
-    
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPEN_NINJA_API_KEY = Deno.env.get("OPEN_NINJA_API_KEY");
+
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('Analyzing product image with location:', location ? 'provided' : 'not provided');
+    console.log("Analyzing product image with location:", location ? "provided" : "not provided");
 
     // Step 1: Call Lovable AI to identify the product
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: "google/gemini-2.5-flash",
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: `You are a product identification expert. Analyze product images and extract key product information.
 
 Your response must be valid JSON with this exact structure (DO NOT include pricing information):
@@ -51,40 +51,40 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
   "cons": ["Con 1", "Con 2"],
   "usageTips": ["Tip 1", "Tip 2", "Tip 3"],
   "recommendation": "Personalized recommendation"
-}`
+}`,
           },
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'text',
-                text: 'Analyze this product photo: Identify the exact item (brand, model), extract key details (including barcode if visible), provide aggregated review insights, pros/cons, and usage recommendations. DO NOT provide pricing information.'
+                type: "text",
+                text: "Analyze this product photo: Identify the exact item (brand, model), extract key details (including barcode if visible), provide aggregated review insights, pros/cons, and usage recommendations. DO NOT provide pricing information.",
               },
               {
-                type: 'image_url',
+                type: "image_url",
                 image_url: {
-                  url: imageData
-                }
-              }
-            ]
-          }
+                  url: imageData,
+                },
+              },
+            ],
+          },
         ],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
+      console.error("AI API error:", response.status, errorText);
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    console.log('AI Response received');
-    
+    console.log("AI Response received");
+
     const content = aiResponse.choices?.[0]?.message?.content;
-    
+
     if (!content) {
-      throw new Error('No content in AI response');
+      throw new Error("No content in AI response");
     }
 
     // Parse the JSON response from AI
@@ -95,123 +95,138 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       const jsonString = jsonMatch ? jsonMatch[1] : content;
       productData = JSON.parse(jsonString);
     } catch (e) {
-      console.error('Failed to parse AI response as JSON:', content);
-      throw new Error('Failed to parse product data from AI response');
+      console.error("Failed to parse AI response as JSON:", content);
+      throw new Error("Failed to parse product data from AI response");
     }
 
-    console.log('Product identified:', productData.productName);
+    console.log("Product identified:", productData.productName);
 
     // Step 2: Get real pricing data using OpenWeb Ninja API
     let pricingData: any = {
-      currency: '$',
-      priceRange: 'N/A',
-      bestPrice: 'N/A',
-      bestDealer: 'Not found',
-      dealerDistance: 'Online',
+      currency: "$",
+      priceRange: "N/A",
+      bestPrice: "N/A",
+      bestDealer: "Not found",
+      dealerDistance: "Online",
       nearbyStores: [],
-      priceHistory: null
+      priceHistory: null,
     };
 
     if (productData.productName && OPEN_NINJA_API_KEY) {
       try {
         // First, reverse geocode to get country if we have coordinates
-        let countryCode = 'us';
-        
+        let countryCode = "us";
+
         if (location?.latitude && location?.longitude) {
           try {
             const geocodeResponse = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=10&addressdetails=1`,
               {
                 headers: {
-                  'User-Agent': 'PriceHunt/1.0'
-                }
-              }
+                  "User-Agent": "PriceHunt/1.0",
+                },
+              },
             );
-            
+
             if (geocodeResponse.ok) {
               const geocodeData = await geocodeResponse.json();
-              countryCode = geocodeData.address?.country_code || 'us';
-              console.log('Country identified for pricing:', countryCode);
+              countryCode = geocodeData.address?.country_code || "us";
+              console.log("Country identified for pricing:", countryCode);
             }
           } catch (e) {
-            console.error('Error geocoding for pricing:', e);
+            console.error("Error geocoding for pricing:", e);
           }
         }
-        
-        console.log('Fetching real-time pricing from OpenWeb Ninja for:', productData.productName);
-        
+
+        console.log("Fetching real-time pricing from OpenWeb Ninja for:", productData.productName);
+
         // Call OpenWeb Ninja Real-Time Product Search API v2
         const searchQuery = encodeURIComponent(productData.productName);
+        console.log(
+          `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
+          {
+            method: "GET",
+            headers: {
+              "X-RapidAPI-Key": OPEN_NINJA_API_KEY,
+              "X-RapidAPI-Host": "real-time-product-search",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
         const ninjaResponse = await fetch(
           `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
           {
-            method: 'GET',
+            method: "GET",
             headers: {
-              'X-RapidAPI-Key': OPEN_NINJA_API_KEY,
-              'X-RapidAPI-Host': 'real-time-product-search',
-              'Content-Type': 'application/json'
-            }
-          }
+              "X-RapidAPI-Key": OPEN_NINJA_API_KEY,
+              "X-RapidAPI-Host": "real-time-product-search",
+              "Content-Type": "application/json",
+            },
+          },
         );
 
         if (ninjaResponse.ok) {
           const ninjaData = await ninjaResponse.json();
-          console.log('OpenWeb Ninja response received:', ninjaData.status);
-          
-          if (ninjaData.status === 'OK' && ninjaData.data && ninjaData.data.length > 0) {
+          console.log("OpenWeb Ninja response received:", ninjaData.status);
+
+          if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.length > 0) {
             // Get the first product result (most relevant)
             const product = ninjaData.data[0];
-            
+
             // Extract pricing information
-            const bestPrice = product.offer?.price || product.typical_price_range?.[0] || 'N/A';
+            const bestPrice = product.offer?.price || product.typical_price_range?.[0] || "N/A";
             const maxPrice = product.typical_price_range?.[1] || bestPrice;
-            
+
             // Build nearby stores from product data
             const nearbyStores = [];
-            
+
             // Add the main offer
             if (product.offer) {
               nearbyStores.push({
-                name: product.offer.store_name || 'Online Store',
-                price: product.offer.price || 'N/A',
-                distance: 'Online',
+                name: product.offer.store_name || "Online Store",
+                price: product.offer.price || "N/A",
+                distance: "Online",
                 rating: product.offer.store_rating,
-                url: product.offer.offer_page_url
+                url: product.offer.offer_page_url,
               });
             }
-            
+
             // Add additional offers if available (some API responses include multiple offers)
             if (product.offers && Array.isArray(product.offers)) {
               product.offers.slice(0, 4).forEach((offer: any) => {
                 nearbyStores.push({
-                  name: offer.store_name || 'Online Store',
-                  price: offer.price || 'N/A',
-                  distance: 'Online',
+                  name: offer.store_name || "Online Store",
+                  price: offer.price || "N/A",
+                  distance: "Online",
                   rating: offer.store_rating,
-                  url: offer.offer_page_url
+                  url: offer.offer_page_url,
                 });
               });
             }
-            
+
             pricingData = {
-              currency: '$',
+              currency: "$",
               priceRange: bestPrice !== maxPrice ? `${bestPrice} - ${maxPrice}` : bestPrice,
               bestPrice: bestPrice,
-              bestDealer: product.offer?.store_name || 'Online Store',
-              dealerDistance: 'Online',
-              nearbyStores: nearbyStores.length > 0 ? nearbyStores : [
-                {
-                  name: product.offer?.store_name || 'View Offers',
-                  price: bestPrice,
-                  distance: 'Online',
-                  url: product.product_offers_page_url
-                }
-              ],
+              bestDealer: product.offer?.store_name || "Online Store",
+              dealerDistance: "Online",
+              nearbyStores:
+                nearbyStores.length > 0
+                  ? nearbyStores
+                  : [
+                      {
+                        name: product.offer?.store_name || "View Offers",
+                        price: bestPrice,
+                        distance: "Online",
+                        url: product.product_offers_page_url,
+                      },
+                    ],
               priceHistory: null,
               productUrl: product.product_page_url,
-              offersUrl: product.product_offers_page_url
+              offersUrl: product.product_offers_page_url,
             };
-            
+
             // Update product rating and reviews from real data if available
             if (product.product_rating) {
               productData.rating = product.product_rating;
@@ -219,21 +234,21 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             if (product.product_num_reviews) {
               productData.reviewCount = product.product_num_reviews;
             }
-            
-            console.log('Real-time pricing data retrieved successfully from OpenWeb Ninja');
+
+            console.log("Real-time pricing data retrieved successfully from OpenWeb Ninja");
           } else {
-            console.log('No product results found in OpenWeb Ninja response');
+            console.log("No product results found in OpenWeb Ninja response");
           }
         } else {
           const errorText = await ninjaResponse.text();
-          console.error('OpenWeb Ninja API error:', ninjaResponse.status, errorText);
+          console.error("OpenWeb Ninja API error:", ninjaResponse.status, errorText);
         }
       } catch (pricingError) {
-        console.error('Error fetching pricing data from OpenWeb Ninja:', pricingError);
+        console.error("Error fetching pricing data from OpenWeb Ninja:", pricingError);
         // Continue with fallback pricing data
       }
     } else if (!OPEN_NINJA_API_KEY) {
-      console.log('OPEN_NINJA_API_KEY not configured, skipping real-time pricing');
+      console.log("OPEN_NINJA_API_KEY not configured, skipping real-time pricing");
     }
 
     // Step 3: Determine user location from coordinates using reverse geocoding
@@ -245,30 +260,30 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=10&addressdetails=1`,
           {
             headers: {
-              'User-Agent': 'PriceHunt/1.0'
-            }
-          }
+              "User-Agent": "PriceHunt/1.0",
+            },
+          },
         );
-        
+
         if (geocodeResponse.ok) {
           const geocodeData = await geocodeResponse.json();
           userLocation = {
-            city: geocodeData.address?.city || geocodeData.address?.town || geocodeData.address?.village || 'Unknown',
-            country: geocodeData.address?.country || 'Unknown'
+            city: geocodeData.address?.city || geocodeData.address?.town || geocodeData.address?.village || "Unknown",
+            country: geocodeData.address?.country || "Unknown",
           };
-          console.log('Location identified:', userLocation);
+          console.log("Location identified:", userLocation);
         } else {
-          console.error('Geocoding error:', geocodeResponse.status);
-          userLocation = { city: 'Unknown', country: 'Unknown' };
+          console.error("Geocoding error:", geocodeResponse.status);
+          userLocation = { city: "Unknown", country: "Unknown" };
         }
       } catch (geocodeError) {
-        console.error('Error reverse geocoding location:', geocodeError);
-        userLocation = { city: 'Unknown', country: 'Unknown' };
+        console.error("Error reverse geocoding location:", geocodeError);
+        userLocation = { city: "Unknown", country: "Unknown" };
       }
     } else if (location) {
       userLocation = {
-        city: location.city || 'Unknown',
-        country: location.country || 'Unknown'
+        city: location.city || "Unknown",
+        country: location.country || "Unknown",
       };
     }
 
@@ -276,30 +291,26 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
     const finalProductData = {
       ...productData,
       ...pricingData,
-      userLocation
+      userLocation,
     };
 
-    console.log('Product analysis complete with real pricing');
+    console.log("Product analysis complete with real pricing");
 
-    return new Response(
-      JSON.stringify(finalProductData),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    );
-
+    return new Response(JSON.stringify(finalProductData), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error) {
-    console.error('Error in analyze-product function:', error);
+    console.error("Error in analyze-product function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: 'Failed to analyze product image'
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        details: "Failed to analyze product image",
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
     );
   }
 });
