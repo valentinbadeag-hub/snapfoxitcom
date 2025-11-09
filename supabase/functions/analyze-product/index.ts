@@ -161,9 +161,9 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           console.log(ninjaData.status);
           console.log(ninjaData.data);
 
-          if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.length > 0) {
+          if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.products.length > 0) {
             // Get the first product result (most relevant)
-            const product = ninjaData.data[0];
+            const product = ninjaData.data.products[0];
 
             // Extract pricing information
             const bestPrice = product.offer?.price || product.typical_price_range?.[0] || "N/A";
