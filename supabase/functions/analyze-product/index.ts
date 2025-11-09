@@ -329,11 +329,23 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               }
             });
 
-            // Use AI to filter and select best deals within 100km radius
+            // First: Strictly filter offers within 100km radius
+            let offersWithin100km = allOffers;
+            if (location?.latitude && location?.longitude) {
+              offersWithin100km = allOffers.filter((offer) => {
+                // Only include offers with actual distance (not "Online") and within 100km
+                return offer.distanceKm > 0 && offer.distanceKm <= 100;
+              });
+              console.log(
+                `Strictly filtered ${offersWithin100km.length} offers within 100km from ${allOffers.length} total offers`,
+              );
+            }
+
+            // Second: Use AI to select best deals from the filtered offers
             let top5Offers = [];
-            if (location?.latitude && location?.longitude && allOffers.length > 0) {
+            if (offersWithin100km.length > 0) {
               try {
-                console.log(`Using AI to select best deals from ${allOffers.length} offers`);
+                console.log(`Using AI to select best deals from ${offersWithin100km.length} local offers`);
                 
                 const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                   method: "POST",
@@ -346,21 +358,23 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                     messages: [
                       {
                         role: "system",
-                        content: `You are a shopping assistant that helps select the best product deals. 
-Analyze the offers and select up to 5 best deals that are within 100km radius from the user.
-Consider: distance (prefer closer), price (prefer lower), and store rating (prefer higher).
-Return ONLY a JSON array of indices (0-based) of the selected offers, e.g., [0, 3, 5, 7, 9]`
+                        content: `You are a shopping assistant that selects the best local product deals.
+CRITICAL RULES:
+- ALL offers provided are already within 100km of the user
+- Select up to 5 best offers prioritizing: closest distance, lowest price, highest rating
+- NEVER select online-only stores or stores from other countries
+- Return ONLY a JSON array of indices (0-based), e.g., [0, 2, 4, 7, 9]`
                       },
                       {
                         role: "user",
-                        content: `User location: ${userLocation?.city || 'Unknown'}, ${userLocation?.country || 'Unknown'}
+                        content: `User is in: ${userLocation?.city || 'Unknown'}, ${userLocation?.country || 'Unknown'}
 
-Available offers:
-${allOffers.map((offer, idx) => 
-  `${idx}. ${offer.name} - ${offer.price} - ${offer.distance} - Rating: ${offer.rating || 'N/A'}`
+Local offers within 100km:
+${offersWithin100km.map((offer, idx) => 
+  `${idx}. Store: ${offer.name} | Price: ${offer.price} | Distance: ${offer.distanceKm.toFixed(1)}km | Rating: ${offer.rating || 'N/A'}`
 ).join('\n')}
 
-Select up to 5 best offers that are within 100km radius. Return only the array of indices.`
+Select up to 5 best LOCAL deals. Prioritize closer stores with good prices and ratings. Return only the JSON array of indices.`
                       }
                     ],
                   }),
@@ -376,11 +390,11 @@ Select up to 5 best offers that are within 100km radius. Return only the array o
                     if (jsonMatch) {
                       const selectedIndices = JSON.parse(jsonMatch[0]);
                       top5Offers = selectedIndices
-                        .filter((idx: number) => idx >= 0 && idx < allOffers.length)
+                        .filter((idx: number) => idx >= 0 && idx < offersWithin100km.length)
                         .slice(0, 5)
-                        .map((idx: number) => allOffers[idx]);
+                        .map((idx: number) => offersWithin100km[idx]);
                       
-                      console.log(`AI selected ${top5Offers.length} offers`);
+                      console.log(`AI selected ${top5Offers.length} offers from local stores`);
                     }
                   }
                 }
@@ -389,21 +403,11 @@ Select up to 5 best offers that are within 100km radius. Return only the array o
               }
             }
 
-            // Fallback: if AI selection failed or no location, use traditional filtering
-            if (top5Offers.length === 0) {
-              let filteredOffers = allOffers;
-              if (location?.latitude && location?.longitude) {
-                filteredOffers = allOffers.filter((offer) => offer.distanceKm === 0 || offer.distanceKm <= 100);
-                console.log(
-                  `Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`,
-                );
-              }
-
-              // Sort by price (lowest first)
-              filteredOffers.sort((a, b) => a.numericPrice - b.numericPrice);
-
-              // Take top 5 offers
-              top5Offers = filteredOffers.slice(0, 5);
+            // Fallback: if AI selection failed, sort by price
+            if (top5Offers.length === 0 && offersWithin100km.length > 0) {
+              offersWithin100km.sort((a, b) => a.numericPrice - b.numericPrice);
+              top5Offers = offersWithin100km.slice(0, 5);
+              console.log(`Fallback: selected ${top5Offers.length} offers sorted by price`);
             }
 
             // Get best price and dealer
