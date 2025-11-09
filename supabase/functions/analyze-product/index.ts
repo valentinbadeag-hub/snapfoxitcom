@@ -142,18 +142,6 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
         // Call OpenWeb Ninja Real-Time Product Search API v2
         const searchQuery = encodeURIComponent(productData.productName);
-        console.log(
-          `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
-          {
-            method: "GET",
-            headers: {
-              "X-RapidAPI-Key": OPEN_NINJA_API_KEY,
-              "X-RapidAPI-Host": "real-time-product-search",
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
         const ninjaResponse = await fetch(
           `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
           {
@@ -169,6 +157,8 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
         if (ninjaResponse.ok) {
           const ninjaData = await ninjaResponse.json();
           console.log("OpenWeb Ninja response received:", ninjaData.status);
+
+          console.log((ninjaData.status, ninjaData.data, ninjaData.data.length));
 
           if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.length > 0) {
             // Get the first product result (most relevant)
