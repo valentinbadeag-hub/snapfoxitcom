@@ -158,6 +158,9 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           const ninjaData = await ninjaResponse.json();
           console.log("OpenWeb Ninja response received:", ninjaData.status);
 
+          console.log(
+            `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
+          );
           console.log(ninjaData.status);
           console.log(ninjaData.data);
 
