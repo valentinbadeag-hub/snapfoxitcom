@@ -143,13 +143,13 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
         // Call OpenWeb Ninja Real-Time Product Search API v2 with location parameters
         const searchQuery = encodeURIComponent(productData.productName);
         let apiUrl = `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&limit=10`;
-        
+
         // Add location parameters if available for nearby deals (within 100km radius)
         if (location?.latitude && location?.longitude) {
           apiUrl += `&lat=${location.latitude}&lng=${location.longitude}&zoom=10`;
           console.log("Searching with location parameters:", { lat: location.latitude, lng: location.longitude });
         }
-        
+
         const ninjaResponse = await fetch(apiUrl, {
           method: "GET",
           headers: {
@@ -163,9 +163,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           const ninjaData = await ninjaResponse.json();
           console.log("OpenWeb Ninja response received:", ninjaData.status);
 
-          console.log(
-            `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
-          );
+          console.log(apiUrl);
           console.log(ninjaData.status);
           console.log(ninjaData.data);
 
@@ -173,13 +171,15 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             // Helper function to calculate distance between two coordinates (Haversine formula)
             const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
               const R = 6371; // Earth's radius in km
-              const dLat = (lat2 - lat1) * Math.PI / 180;
-              const dLon = (lon2 - lon1) * Math.PI / 180;
-              const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              const dLat = ((lat2 - lat1) * Math.PI) / 180;
+              const dLon = ((lon2 - lon1) * Math.PI) / 180;
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos((lat1 * Math.PI) / 180) *
+                  Math.cos((lat2 * Math.PI) / 180) *
+                  Math.sin(dLon / 2) *
+                  Math.sin(dLon / 2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
               return R * c; // Distance in km
             };
 
@@ -187,36 +187,44 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             const extractPrice = (priceString: string): number => {
               if (!priceString || priceString === "N/A") return Infinity;
               const match = priceString.match(/[\d,\.]+/);
-              return match ? parseFloat(match[0].replace(/,/g, '')) : Infinity;
+              return match ? parseFloat(match[0].replace(/,/g, "")) : Infinity;
             };
 
             // Helper function to check if product matches the search
             const isProductMatch = (productTitle: string, searchName: string): boolean => {
-              const normalizeString = (str: string) => str.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+              const normalizeString = (str: string) =>
+                str
+                  .toLowerCase()
+                  .replace(/[^a-z0-9\s]/g, "")
+                  .trim();
               const normalizedTitle = normalizeString(productTitle);
               const normalizedSearch = normalizeString(searchName);
-              
+
               // Extract key words from search name (ignore common words)
-              const commonWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'];
-              const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2 && !commonWords.includes(word));
-              
+              const commonWords = ["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"];
+              const searchWords = normalizedSearch
+                .split(/\s+/)
+                .filter((word) => word.length > 2 && !commonWords.includes(word));
+
               // Product matches if it contains at least 60% of the key search words
-              const matchCount = searchWords.filter(word => normalizedTitle.includes(word)).length;
+              const matchCount = searchWords.filter((word) => normalizedTitle.includes(word)).length;
               const matchPercentage = searchWords.length > 0 ? matchCount / searchWords.length : 0;
-              
+
               return matchPercentage >= 0.6;
             };
 
             // Filter products to only include matches to the original search
-            const matchingProducts = ninjaData.data.products.filter((product: any) => 
-              isProductMatch(product.product_title || '', productData.productName)
+            const matchingProducts = ninjaData.data.products.filter((product: any) =>
+              isProductMatch(product.product_title || "", productData.productName),
             );
-            
-            console.log(`Filtered ${matchingProducts.length} matching products from ${ninjaData.data.products.length} total products`);
+
+            console.log(
+              `Filtered ${matchingProducts.length} matching products from ${ninjaData.data.products.length} total products`,
+            );
 
             // Process all matching products
             const allOffers: any[] = [];
-            
+
             matchingProducts.forEach((product: any) => {
               // Get main offer
               if (product.offer) {
@@ -231,16 +239,16 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                   lat: product.offer.store_lat,
                   lon: product.offer.store_lon,
                 };
-                
+
                 // Calculate distance if coordinates available
                 if (location?.latitude && location?.longitude && offer.lat && offer.lon) {
                   offer.distanceKm = calculateDistance(location.latitude, location.longitude, offer.lat, offer.lon);
                   offer.distance = `${offer.distanceKm.toFixed(1)} km`;
                 }
-                
+
                 allOffers.push(offer);
               }
-              
+
               // Get additional offers
               if (product.offers && Array.isArray(product.offers)) {
                 product.offers.forEach((offer: any) => {
@@ -255,13 +263,18 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                     lat: offer.store_lat,
                     lon: offer.store_lon,
                   };
-                  
+
                   // Calculate distance if coordinates available
                   if (location?.latitude && location?.longitude && offerData.lat && offerData.lon) {
-                    offerData.distanceKm = calculateDistance(location.latitude, location.longitude, offerData.lat, offerData.lon);
+                    offerData.distanceKm = calculateDistance(
+                      location.latitude,
+                      location.longitude,
+                      offerData.lat,
+                      offerData.lon,
+                    );
                     offerData.distance = `${offerData.distanceKm.toFixed(1)} km`;
                   }
-                  
+
                   allOffers.push(offerData);
                 });
               }
@@ -270,10 +283,10 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             // Filter by 100km radius if location is available
             let filteredOffers = allOffers;
             if (location?.latitude && location?.longitude) {
-              filteredOffers = allOffers.filter(offer => 
-                offer.distanceKm === 0 || offer.distanceKm <= 100
+              filteredOffers = allOffers.filter((offer) => offer.distanceKm === 0 || offer.distanceKm <= 100);
+              console.log(
+                `Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`,
               );
-              console.log(`Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`);
             }
 
             // Sort by price (lowest first)
@@ -289,7 +302,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             const bestLink = bestOffer?.link;
 
             // Clean up offers for response (remove helper fields)
-            const nearbyStores = top5Offers.map(offer => ({
+            const nearbyStores = top5Offers.map((offer) => ({
               name: offer.name,
               price: offer.price,
               distance: offer.distance,
@@ -299,17 +312,28 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
             pricingData = {
               currency: "$",
-              priceRange: top5Offers.length > 1 ? `${top5Offers[0].price} - ${top5Offers[top5Offers.length - 1].price}` : bestPrice,
+              priceRange:
+                top5Offers.length > 1
+                  ? `${top5Offers[0].price} - ${top5Offers[top5Offers.length - 1].price}`
+                  : bestPrice,
               bestPrice: bestPrice,
               bestDealer: bestDealer,
               dealerDistance: bestOffer?.distance || "Online",
-              dealLink: bestLink || ninjaData.data.products[0]?.product_offers_page_url || ninjaData.data.products[0]?.product_page_url,
-              nearbyStores: nearbyStores.length > 0 ? nearbyStores : [{
-                name: "View Offers",
-                price: "N/A",
-                distance: "Online",
-                link: ninjaData.data.products[0]?.product_offers_page_url,
-              }],
+              dealLink:
+                bestLink ||
+                ninjaData.data.products[0]?.product_offers_page_url ||
+                ninjaData.data.products[0]?.product_page_url,
+              nearbyStores:
+                nearbyStores.length > 0
+                  ? nearbyStores
+                  : [
+                      {
+                        name: "View Offers",
+                        price: "N/A",
+                        distance: "Online",
+                        link: ninjaData.data.products[0]?.product_offers_page_url,
+                      },
+                    ],
               priceHistory: null,
             };
 
@@ -355,17 +379,18 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
         if (geocodeResponse.ok) {
           const geocodeData = await geocodeResponse.json();
           console.log("Geocode response:", JSON.stringify(geocodeData.address));
-          
+
           // Try multiple address fields to identify city
-          const city = geocodeData.address?.city || 
-                      geocodeData.address?.town || 
-                      geocodeData.address?.village || 
-                      geocodeData.address?.municipality ||
-                      geocodeData.address?.county ||
-                      geocodeData.address?.state ||
-                      geocodeData.address?.region ||
-                      "Unknown";
-          
+          const city =
+            geocodeData.address?.city ||
+            geocodeData.address?.town ||
+            geocodeData.address?.village ||
+            geocodeData.address?.municipality ||
+            geocodeData.address?.county ||
+            geocodeData.address?.state ||
+            geocodeData.address?.region ||
+            "Unknown";
+
           userLocation = {
             city: city,
             country: geocodeData.address?.country || "Unknown",
