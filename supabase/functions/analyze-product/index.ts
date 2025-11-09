@@ -187,7 +187,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                 price: product.offer.price || "N/A",
                 distance: "Online",
                 rating: product.offer.store_rating,
-                url: product.offer.offer_page_url,
+                link: product.offer.offer_page_url,
               });
             }
 
@@ -199,7 +199,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                   price: offer.price || "N/A",
                   distance: "Online",
                   rating: offer.store_rating,
-                  url: offer.offer_page_url,
+                  link: offer.offer_page_url,
                 });
               });
             }
@@ -210,6 +210,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               bestPrice: bestPrice,
               bestDealer: product.offer?.store_name || "Online Store",
               dealerDistance: "Online",
+              dealLink: product.offer?.offer_page_url || product.product_offers_page_url || product.product_page_url,
               nearbyStores:
                 nearbyStores.length > 0
                   ? nearbyStores
@@ -218,12 +219,10 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                         name: product.offer?.store_name || "View Offers",
                         price: bestPrice,
                         distance: "Online",
-                        url: product.product_offers_page_url,
+                        link: product.product_offers_page_url,
                       },
                     ],
               priceHistory: null,
-              productUrl: product.product_page_url,
-              offersUrl: product.product_offers_page_url,
             };
 
             // Update product rating and reviews from real data if available
