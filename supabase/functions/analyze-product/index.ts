@@ -140,15 +140,16 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
         
         console.log('Fetching real-time pricing from OpenWeb Ninja for:', productData.productName);
         
-        // Call OpenWeb Ninja Real-Time Product Search API
+        // Call OpenWeb Ninja Real-Time Product Search API v2
         const searchQuery = encodeURIComponent(productData.productName);
         const ninjaResponse = await fetch(
-          `https://real-time-product-search.p.rapidapi.com/search?q=${searchQuery}&country=${countryCode}&limit=10`,
+          `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
           {
             method: 'GET',
             headers: {
-              'x-rapidapi-key': OPEN_NINJA_API_KEY,
-              'x-rapidapi-host': 'real-time-product-search.p.rapidapi.com'
+              'X-RapidAPI-Key': OPEN_NINJA_API_KEY,
+              'X-RapidAPI-Host': 'real-time-product-search',
+              'Content-Type': 'application/json'
             }
           }
         );
