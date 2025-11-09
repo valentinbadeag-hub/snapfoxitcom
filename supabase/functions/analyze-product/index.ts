@@ -101,7 +101,56 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
     console.log("Product identified:", productData.productName);
 
-    // Step 2: Get real pricing data using OpenWeb Ninja API
+    // Step 2: Determine user location from coordinates using reverse geocoding
+    let userLocation: { city: string; country: string } | null = null;
+    if (location?.latitude && location?.longitude) {
+      try {
+        // Use OpenStreetMap Nominatim for reverse geocoding with higher zoom for better detail
+        const geocodeResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "PriceHunt/1.0",
+            },
+          },
+        );
+
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          console.log("Geocode response:", JSON.stringify(geocodeData.address));
+
+          // Try multiple address fields to identify city
+          const city =
+            geocodeData.address?.city ||
+            geocodeData.address?.town ||
+            geocodeData.address?.village ||
+            geocodeData.address?.municipality ||
+            geocodeData.address?.county ||
+            geocodeData.address?.state ||
+            geocodeData.address?.region ||
+            "Unknown";
+
+          userLocation = {
+            city: city,
+            country: geocodeData.address?.country || "Unknown",
+          };
+          console.log("Location identified:", userLocation);
+        } else {
+          console.error("Geocoding error:", geocodeResponse.status);
+          userLocation = { city: "Unknown", country: "Unknown" };
+        }
+      } catch (geocodeError) {
+        console.error("Error reverse geocoding location:", geocodeError);
+        userLocation = { city: "Unknown", country: "Unknown" };
+      }
+    } else if (location) {
+      userLocation = {
+        city: location.city || "Unknown",
+        country: location.country || "Unknown",
+      };
+    }
+
+    // Step 3: Get real pricing data using OpenWeb Ninja API
     let pricingData: any = {
       currency: "$",
       priceRange: "N/A",
@@ -280,20 +329,82 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               }
             });
 
-            // Filter by 100km radius if location is available
-            let filteredOffers = allOffers;
-            if (location?.latitude && location?.longitude) {
-              filteredOffers = allOffers.filter((offer) => offer.distanceKm === 0 || offer.distanceKm <= 100);
-              console.log(
-                `Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`,
-              );
+            // Use AI to filter and select best deals within 100km radius
+            let top5Offers = [];
+            if (location?.latitude && location?.longitude && allOffers.length > 0) {
+              try {
+                console.log(`Using AI to select best deals from ${allOffers.length} offers`);
+                
+                const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash",
+                    messages: [
+                      {
+                        role: "system",
+                        content: `You are a shopping assistant that helps select the best product deals. 
+Analyze the offers and select up to 5 best deals that are within 100km radius from the user.
+Consider: distance (prefer closer), price (prefer lower), and store rating (prefer higher).
+Return ONLY a JSON array of indices (0-based) of the selected offers, e.g., [0, 3, 5, 7, 9]`
+                      },
+                      {
+                        role: "user",
+                        content: `User location: ${userLocation?.city || 'Unknown'}, ${userLocation?.country || 'Unknown'}
+
+Available offers:
+${allOffers.map((offer, idx) => 
+  `${idx}. ${offer.name} - ${offer.price} - ${offer.distance} - Rating: ${offer.rating || 'N/A'}`
+).join('\n')}
+
+Select up to 5 best offers that are within 100km radius. Return only the array of indices.`
+                      }
+                    ],
+                  }),
+                });
+
+                if (aiResponse.ok) {
+                  const aiData = await aiResponse.json();
+                  const content = aiData.choices?.[0]?.message?.content;
+                  
+                  if (content) {
+                    // Parse AI response to get selected indices
+                    const jsonMatch = content.match(/\[[\d,\s]+\]/);
+                    if (jsonMatch) {
+                      const selectedIndices = JSON.parse(jsonMatch[0]);
+                      top5Offers = selectedIndices
+                        .filter((idx: number) => idx >= 0 && idx < allOffers.length)
+                        .slice(0, 5)
+                        .map((idx: number) => allOffers[idx]);
+                      
+                      console.log(`AI selected ${top5Offers.length} offers`);
+                    }
+                  }
+                }
+              } catch (aiError) {
+                console.error("Error using AI for deal selection:", aiError);
+              }
             }
 
-            // Sort by price (lowest first)
-            filteredOffers.sort((a, b) => a.numericPrice - b.numericPrice);
+            // Fallback: if AI selection failed or no location, use traditional filtering
+            if (top5Offers.length === 0) {
+              let filteredOffers = allOffers;
+              if (location?.latitude && location?.longitude) {
+                filteredOffers = allOffers.filter((offer) => offer.distanceKm === 0 || offer.distanceKm <= 100);
+                console.log(
+                  `Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`,
+                );
+              }
 
-            // Take top 5 offers
-            const top5Offers = filteredOffers.slice(0, 5);
+              // Sort by price (lowest first)
+              filteredOffers.sort((a, b) => a.numericPrice - b.numericPrice);
+
+              // Take top 5 offers
+              top5Offers = filteredOffers.slice(0, 5);
+            }
 
             // Get best price and dealer
             const bestOffer = top5Offers[0];
@@ -302,7 +413,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             const bestLink = bestOffer?.link;
 
             // Clean up offers for response (remove helper fields)
-            const nearbyStores = top5Offers.map((offer) => ({
+            const nearbyStores = top5Offers.map((offer: any) => ({
               name: offer.name,
               price: offer.price,
               distance: offer.distance,
@@ -360,55 +471,6 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       }
     } else if (!OPEN_NINJA_API_KEY) {
       console.log("OPEN_NINJA_API_KEY not configured, skipping real-time pricing");
-    }
-
-    // Step 3: Determine user location from coordinates using reverse geocoding
-    let userLocation = null;
-    if (location?.latitude && location?.longitude) {
-      try {
-        // Use OpenStreetMap Nominatim for reverse geocoding with higher zoom for better detail
-        const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1`,
-          {
-            headers: {
-              "User-Agent": "PriceHunt/1.0",
-            },
-          },
-        );
-
-        if (geocodeResponse.ok) {
-          const geocodeData = await geocodeResponse.json();
-          console.log("Geocode response:", JSON.stringify(geocodeData.address));
-
-          // Try multiple address fields to identify city
-          const city =
-            geocodeData.address?.city ||
-            geocodeData.address?.town ||
-            geocodeData.address?.village ||
-            geocodeData.address?.municipality ||
-            geocodeData.address?.county ||
-            geocodeData.address?.state ||
-            geocodeData.address?.region ||
-            "Unknown";
-
-          userLocation = {
-            city: city,
-            country: geocodeData.address?.country || "Unknown",
-          };
-          console.log("Location identified:", userLocation);
-        } else {
-          console.error("Geocoding error:", geocodeResponse.status);
-          userLocation = { city: "Unknown", country: "Unknown" };
-        }
-      } catch (geocodeError) {
-        console.error("Error reverse geocoding location:", geocodeError);
-        userLocation = { city: "Unknown", country: "Unknown" };
-      }
-    } else if (location) {
-      userLocation = {
-        city: location.city || "Unknown",
-        country: location.country || "Unknown",
-      };
     }
 
     // Step 4: Merge product data with real pricing
