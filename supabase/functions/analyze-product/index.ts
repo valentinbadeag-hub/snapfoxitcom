@@ -159,7 +159,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           {
             method: "GET",
             headers: {
-              "X-RapidAPI-Key": OPEN_NINJA_API_KEY,
+              "x-api-key": OPEN_NINJA_API_KEY,
               "X-RapidAPI-Host": "real-time-product-search",
               "Content-Type": "application/json",
             },
