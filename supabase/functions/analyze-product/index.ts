@@ -140,19 +140,24 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
         console.log("Fetching real-time pricing from OpenWeb Ninja for:", productData.productName);
 
-        // Call OpenWeb Ninja Real-Time Product Search API v2
+        // Call OpenWeb Ninja Real-Time Product Search API v2 with location parameters
         const searchQuery = encodeURIComponent(productData.productName);
-        const ninjaResponse = await fetch(
-          `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&num_results=5`,
-          {
-            method: "GET",
-            headers: {
-              "x-api-key": OPEN_NINJA_API_KEY,
-              "X-RapidAPI-Host": "real-time-product-search",
-              "Content-Type": "application/json",
-            },
+        let apiUrl = `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&limit=10`;
+        
+        // Add location parameters if available for nearby deals (within 100km radius)
+        if (location?.latitude && location?.longitude) {
+          apiUrl += `&lat=${location.latitude}&lng=${location.longitude}&zoom=10`;
+          console.log("Searching with location parameters:", { lat: location.latitude, lng: location.longitude });
+        }
+        
+        const ninjaResponse = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            "x-api-key": OPEN_NINJA_API_KEY,
+            "X-RapidAPI-Host": "real-time-product-search",
+            "Content-Type": "application/json",
           },
-        );
+        });
 
         if (ninjaResponse.ok) {
           const ninjaData = await ninjaResponse.json();
