@@ -239,37 +239,85 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               return match ? parseFloat(match[0].replace(/,/g, "")) : Infinity;
             };
 
-            // Helper function to check if product matches the search
-            const isProductMatch = (productTitle: string, searchName: string): boolean => {
+            // Use AI to verify exact product matches
+            console.log(`Verifying ${ninjaData.data.products.length} products with AI for exact matches`);
+            
+            const verifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "system",
+                    content: `You are a product matching expert. Compare product titles to determine if they are EXACT matches.
+CRITICAL RULES:
+- Only return true for products that are the SAME item (same brand, same model, same specifications)
+- Slight variations in wording are OK (e.g., "Pro" vs "Professional", "XL" position)
+- Different colors/sizes of the same model are acceptable matches
+- Return ONLY a JSON array of boolean values: [true, false, true, ...]
+- Array length must match the number of products provided
+
+Example:
+Search: "Ninja Woodfire Pro Connect XL"
+Products: ["Ninja Woodfire Pro Connect XL Grill", "Weber Genesis", "Ninja Woodfire Pro XL"]
+Response: [true, false, true]`
+                  },
+                  {
+                    role: "user",
+                    content: `Search Product: ${productData.productName}
+
+Product Titles to Verify:
+${ninjaData.data.products.map((p: any, idx: number) => `${idx}. ${p.product_title || 'Unknown'}`).join('\n')}
+
+Return a JSON array of booleans indicating which products are exact matches.`
+                  }
+                ],
+              }),
+            });
+
+            let matchingProducts = [];
+            if (verifyResponse.ok) {
+              const verifyData = await verifyResponse.json();
+              const content = verifyData.choices?.[0]?.message?.content;
+              
+              if (content) {
+                try {
+                  const jsonMatch = content.match(/\[[\w,\s]+\]/);
+                  if (jsonMatch) {
+                    const matches = JSON.parse(jsonMatch[0]);
+                    matchingProducts = ninjaData.data.products.filter((_: any, idx: number) => matches[idx] === true);
+                    console.log(`AI verified ${matchingProducts.length} exact matches from ${ninjaData.data.products.length} products`);
+                  }
+                } catch (e) {
+                  console.error("Error parsing AI verification response:", e);
+                }
+              }
+            }
+
+            // Fallback to basic matching if AI fails
+            if (matchingProducts.length === 0) {
+              console.log("AI verification failed, using strict fallback matching");
               const normalizeString = (str: string) =>
-                str
-                  .toLowerCase()
-                  .replace(/[^a-z0-9\s]/g, "")
-                  .trim();
-              const normalizedTitle = normalizeString(productTitle);
-              const normalizedSearch = normalizeString(searchName);
-
-              // Extract key words from search name (ignore common words)
-              const commonWords = ["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"];
-              const searchWords = normalizedSearch
+                str.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+              
+              const searchWords = normalizeString(productData.productName)
                 .split(/\s+/)
-                .filter((word) => word.length > 2 && !commonWords.includes(word));
-
-              // Product matches if it contains at least 60% of the key search words
-              const matchCount = searchWords.filter((word) => normalizedTitle.includes(word)).length;
-              const matchPercentage = searchWords.length > 0 ? matchCount / searchWords.length : 0;
-
-              return matchPercentage >= 0.6;
-            };
-
-            // Filter products to only include matches to the original search
-            const matchingProducts = ninjaData.data.products.filter((product: any) =>
-              isProductMatch(product.product_title || "", productData.productName),
-            );
-
-            console.log(
-              `Filtered ${matchingProducts.length} matching products from ${ninjaData.data.products.length} total products`,
-            );
+                .filter((word: string) => word.length > 2);
+              
+              matchingProducts = ninjaData.data.products.filter((product: any) => {
+                const title = normalizeString(product.product_title || "");
+                // Require at least 85% of words to match for strict matching
+                const matchCount = searchWords.filter((word: string) => title.includes(word)).length;
+                const matchPercentage = searchWords.length > 0 ? matchCount / searchWords.length : 0;
+                return matchPercentage >= 0.85;
+              });
+              
+              console.log(`Fallback matching found ${matchingProducts.length} products`);
+            }
 
             // Helper function to get country code from coordinates
             const getCountryCode = async (lat: number, lon: number): Promise<string | null> => {
