@@ -190,10 +190,34 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               return match ? parseFloat(match[0].replace(/,/g, '')) : Infinity;
             };
 
-            // Process all products from the response
+            // Helper function to check if product matches the search
+            const isProductMatch = (productTitle: string, searchName: string): boolean => {
+              const normalizeString = (str: string) => str.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+              const normalizedTitle = normalizeString(productTitle);
+              const normalizedSearch = normalizeString(searchName);
+              
+              // Extract key words from search name (ignore common words)
+              const commonWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'];
+              const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2 && !commonWords.includes(word));
+              
+              // Product matches if it contains at least 60% of the key search words
+              const matchCount = searchWords.filter(word => normalizedTitle.includes(word)).length;
+              const matchPercentage = searchWords.length > 0 ? matchCount / searchWords.length : 0;
+              
+              return matchPercentage >= 0.6;
+            };
+
+            // Filter products to only include matches to the original search
+            const matchingProducts = ninjaData.data.products.filter((product: any) => 
+              isProductMatch(product.product_title || '', productData.productName)
+            );
+            
+            console.log(`Filtered ${matchingProducts.length} matching products from ${ninjaData.data.products.length} total products`);
+
+            // Process all matching products
             const allOffers: any[] = [];
             
-            ninjaData.data.products.forEach((product: any) => {
+            matchingProducts.forEach((product: any) => {
               // Get main offer
               if (product.offer) {
                 const offer = {
