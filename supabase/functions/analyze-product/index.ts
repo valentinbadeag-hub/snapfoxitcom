@@ -101,7 +101,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
     console.log('Product identified:', productData.productName);
 
-    // Step 2: Get real pricing data using Lovable AI
+    // Step 2: Get real pricing data using OpenWeb Ninja API
     let pricingData: any = {
       currency: '$',
       priceRange: 'N/A',
@@ -112,11 +112,10 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       priceHistory: null
     };
 
-    if (productData.productName) {
+    if (productData.productName && OPEN_NINJA_API_KEY) {
       try {
         // First, reverse geocode to get country if we have coordinates
-        let country = 'US';
-        let countryCode = 'US';
+        let countryCode = 'us';
         
         if (location?.latitude && location?.longitude) {
           try {
@@ -131,86 +130,109 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             
             if (geocodeResponse.ok) {
               const geocodeData = await geocodeResponse.json();
-              country = geocodeData.address?.country || 'US';
-              countryCode = geocodeData.address?.country_code?.toUpperCase() || 'US';
-              console.log('Country identified for pricing:', country, countryCode);
+              countryCode = geocodeData.address?.country_code || 'us';
+              console.log('Country identified for pricing:', countryCode);
             }
           } catch (e) {
             console.error('Error geocoding for pricing:', e);
           }
-        } else if (location?.country) {
-          country = location.country;
         }
         
-        console.log('Fetching real-time pricing using AI for:', productData.productName, 'in', country);
+        console.log('Fetching real-time pricing from OpenWeb Ninja for:', productData.productName);
         
-        // Use Lovable AI to get pricing data
-        const aiPricingResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: `You are a pricing expert. Search for current online prices for products and return structured pricing data.
-Your response must be valid JSON with this structure:
-{
-  "currency": "$",
-  "bestPrice": "12.99",
-  "priceRange": "12.99 - 15.99",
-  "bestDealer": "Amazon",
-  "nearbyStores": [
-    {"name": "Amazon", "price": "12.99", "distance": "Online"},
-    {"name": "Walmart", "price": "13.99", "distance": "Online"},
-    {"name": "Target", "price": "14.99", "distance": "Online"}
-  ]
-}`
-              },
-              {
-                role: 'user',
-                content: `Find current online prices for "${productData.productName}" in ${country}. Return the top 3-5 online stores with their prices in valid JSON format.`
-              }
-            ],
-          }),
-        });
-
-        if (aiPricingResponse.ok) {
-          const aiPricingJson = await aiPricingResponse.json();
-          const pricingContent = aiPricingJson.choices?.[0]?.message?.content;
-          
-          if (pricingContent) {
-            try {
-              // Extract JSON from markdown code blocks if present
-              const jsonMatch = pricingContent.match(/```json\n([\s\S]*?)\n```/) || pricingContent.match(/```([\s\S]*?)```/);
-              const jsonString = jsonMatch ? jsonMatch[1] : pricingContent;
-              const aiPricingData = JSON.parse(jsonString);
-              
-              pricingData = {
-                currency: aiPricingData.currency || '$',
-                priceRange: aiPricingData.priceRange || 'N/A',
-                bestPrice: aiPricingData.bestPrice || 'N/A',
-                bestDealer: aiPricingData.bestDealer || 'Online Store',
-                dealerDistance: 'Online',
-                nearbyStores: aiPricingData.nearbyStores || [],
-                priceHistory: null
-              };
-              
-              console.log('AI pricing data retrieved successfully');
-            } catch (e) {
-              console.error('Failed to parse AI pricing response:', pricingContent);
+        // Call OpenWeb Ninja Real-Time Product Search API
+        const searchQuery = encodeURIComponent(productData.productName);
+        const ninjaResponse = await fetch(
+          `https://real-time-product-search.p.rapidapi.com/search?q=${searchQuery}&country=${countryCode}&limit=10`,
+          {
+            method: 'GET',
+            headers: {
+              'x-rapidapi-key': OPEN_NINJA_API_KEY,
+              'x-rapidapi-host': 'real-time-product-search.p.rapidapi.com'
             }
           }
+        );
+
+        if (ninjaResponse.ok) {
+          const ninjaData = await ninjaResponse.json();
+          console.log('OpenWeb Ninja response received:', ninjaData.status);
+          
+          if (ninjaData.status === 'OK' && ninjaData.data && ninjaData.data.length > 0) {
+            // Get the first product result (most relevant)
+            const product = ninjaData.data[0];
+            
+            // Extract pricing information
+            const bestPrice = product.offer?.price || product.typical_price_range?.[0] || 'N/A';
+            const maxPrice = product.typical_price_range?.[1] || bestPrice;
+            
+            // Build nearby stores from product data
+            const nearbyStores = [];
+            
+            // Add the main offer
+            if (product.offer) {
+              nearbyStores.push({
+                name: product.offer.store_name || 'Online Store',
+                price: product.offer.price || 'N/A',
+                distance: 'Online',
+                rating: product.offer.store_rating,
+                url: product.offer.offer_page_url
+              });
+            }
+            
+            // Add additional offers if available (some API responses include multiple offers)
+            if (product.offers && Array.isArray(product.offers)) {
+              product.offers.slice(0, 4).forEach((offer: any) => {
+                nearbyStores.push({
+                  name: offer.store_name || 'Online Store',
+                  price: offer.price || 'N/A',
+                  distance: 'Online',
+                  rating: offer.store_rating,
+                  url: offer.offer_page_url
+                });
+              });
+            }
+            
+            pricingData = {
+              currency: '$',
+              priceRange: bestPrice !== maxPrice ? `${bestPrice} - ${maxPrice}` : bestPrice,
+              bestPrice: bestPrice,
+              bestDealer: product.offer?.store_name || 'Online Store',
+              dealerDistance: 'Online',
+              nearbyStores: nearbyStores.length > 0 ? nearbyStores : [
+                {
+                  name: product.offer?.store_name || 'View Offers',
+                  price: bestPrice,
+                  distance: 'Online',
+                  url: product.product_offers_page_url
+                }
+              ],
+              priceHistory: null,
+              productUrl: product.product_page_url,
+              offersUrl: product.product_offers_page_url
+            };
+            
+            // Update product rating and reviews from real data if available
+            if (product.product_rating) {
+              productData.rating = product.product_rating;
+            }
+            if (product.product_num_reviews) {
+              productData.reviewCount = product.product_num_reviews;
+            }
+            
+            console.log('Real-time pricing data retrieved successfully from OpenWeb Ninja');
+          } else {
+            console.log('No product results found in OpenWeb Ninja response');
+          }
         } else {
-          console.error('AI Pricing API error:', aiPricingResponse.status);
+          const errorText = await ninjaResponse.text();
+          console.error('OpenWeb Ninja API error:', ninjaResponse.status, errorText);
         }
       } catch (pricingError) {
-        console.error('Error fetching pricing data:', pricingError);
+        console.error('Error fetching pricing data from OpenWeb Ninja:', pricingError);
         // Continue with fallback pricing data
       }
+    } else if (!OPEN_NINJA_API_KEY) {
+      console.log('OPEN_NINJA_API_KEY not configured, skipping real-time pricing');
     }
 
     // Step 3: Determine user location from coordinates using reverse geocoding
