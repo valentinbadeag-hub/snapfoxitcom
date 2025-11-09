@@ -170,70 +170,135 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           console.log(ninjaData.data);
 
           if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.products.length > 0) {
-            // Get the first product result (most relevant)
-            const product = ninjaData.data.products[0];
+            // Helper function to calculate distance between two coordinates (Haversine formula)
+            const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+              const R = 6371; // Earth's radius in km
+              const dLat = (lat2 - lat1) * Math.PI / 180;
+              const dLon = (lon2 - lon1) * Math.PI / 180;
+              const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              return R * c; // Distance in km
+            };
 
-            // Extract pricing information
-            const bestPrice = product.offer?.price || product.typical_price_range?.[0] || "N/A";
-            const maxPrice = product.typical_price_range?.[1] || bestPrice;
+            // Helper function to extract numeric price from string
+            const extractPrice = (priceString: string): number => {
+              if (!priceString || priceString === "N/A") return Infinity;
+              const match = priceString.match(/[\d,\.]+/);
+              return match ? parseFloat(match[0].replace(/,/g, '')) : Infinity;
+            };
 
-            // Build nearby stores from product data
-            const nearbyStores = [];
-
-            // Add the main offer
-            if (product.offer) {
-              nearbyStores.push({
-                name: product.offer.store_name || "Online Store",
-                price: product.offer.price || "N/A",
-                distance: "Online",
-                rating: product.offer.store_rating,
-                link: product.offer.offer_page_url,
-              });
-            }
-
-            // Add additional offers if available (some API responses include multiple offers)
-            if (product.offers && Array.isArray(product.offers)) {
-              product.offers.slice(0, 4).forEach((offer: any) => {
-                nearbyStores.push({
-                  name: offer.store_name || "Online Store",
-                  price: offer.price || "N/A",
+            // Process all products from the response
+            const allOffers: any[] = [];
+            
+            ninjaData.data.products.forEach((product: any) => {
+              // Get main offer
+              if (product.offer) {
+                const offer = {
+                  name: product.offer.store_name || "Online Store",
+                  price: product.offer.price || "N/A",
+                  numericPrice: extractPrice(product.offer.price),
                   distance: "Online",
-                  rating: offer.store_rating,
-                  link: offer.offer_page_url,
+                  distanceKm: 0,
+                  rating: product.offer.store_rating,
+                  link: product.offer.offer_page_url,
+                  lat: product.offer.store_lat,
+                  lon: product.offer.store_lon,
+                };
+                
+                // Calculate distance if coordinates available
+                if (location?.latitude && location?.longitude && offer.lat && offer.lon) {
+                  offer.distanceKm = calculateDistance(location.latitude, location.longitude, offer.lat, offer.lon);
+                  offer.distance = `${offer.distanceKm.toFixed(1)} km`;
+                }
+                
+                allOffers.push(offer);
+              }
+              
+              // Get additional offers
+              if (product.offers && Array.isArray(product.offers)) {
+                product.offers.forEach((offer: any) => {
+                  const offerData = {
+                    name: offer.store_name || "Online Store",
+                    price: offer.price || "N/A",
+                    numericPrice: extractPrice(offer.price),
+                    distance: "Online",
+                    distanceKm: 0,
+                    rating: offer.store_rating,
+                    link: offer.offer_page_url,
+                    lat: offer.store_lat,
+                    lon: offer.store_lon,
+                  };
+                  
+                  // Calculate distance if coordinates available
+                  if (location?.latitude && location?.longitude && offerData.lat && offerData.lon) {
+                    offerData.distanceKm = calculateDistance(location.latitude, location.longitude, offerData.lat, offerData.lon);
+                    offerData.distance = `${offerData.distanceKm.toFixed(1)} km`;
+                  }
+                  
+                  allOffers.push(offerData);
                 });
-              });
+              }
+            });
+
+            // Filter by 100km radius if location is available
+            let filteredOffers = allOffers;
+            if (location?.latitude && location?.longitude) {
+              filteredOffers = allOffers.filter(offer => 
+                offer.distanceKm === 0 || offer.distanceKm <= 100
+              );
+              console.log(`Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`);
             }
+
+            // Sort by price (lowest first)
+            filteredOffers.sort((a, b) => a.numericPrice - b.numericPrice);
+
+            // Take top 5 offers
+            const top5Offers = filteredOffers.slice(0, 5);
+
+            // Get best price and dealer
+            const bestOffer = top5Offers[0];
+            const bestPrice = bestOffer?.price || "N/A";
+            const bestDealer = bestOffer?.name || "Online Store";
+            const bestLink = bestOffer?.link;
+
+            // Clean up offers for response (remove helper fields)
+            const nearbyStores = top5Offers.map(offer => ({
+              name: offer.name,
+              price: offer.price,
+              distance: offer.distance,
+              rating: offer.rating,
+              link: offer.link,
+            }));
 
             pricingData = {
               currency: "$",
-              priceRange: bestPrice !== maxPrice ? `${bestPrice} - ${maxPrice}` : bestPrice,
+              priceRange: top5Offers.length > 1 ? `${top5Offers[0].price} - ${top5Offers[top5Offers.length - 1].price}` : bestPrice,
               bestPrice: bestPrice,
-              bestDealer: product.offer?.store_name || "Online Store",
-              dealerDistance: "Online",
-              dealLink: product.offer?.offer_page_url || product.product_offers_page_url || product.product_page_url,
-              nearbyStores:
-                nearbyStores.length > 0
-                  ? nearbyStores
-                  : [
-                      {
-                        name: product.offer?.store_name || "View Offers",
-                        price: bestPrice,
-                        distance: "Online",
-                        link: product.product_offers_page_url,
-                      },
-                    ],
+              bestDealer: bestDealer,
+              dealerDistance: bestOffer?.distance || "Online",
+              dealLink: bestLink || ninjaData.data.products[0]?.product_offers_page_url || ninjaData.data.products[0]?.product_page_url,
+              nearbyStores: nearbyStores.length > 0 ? nearbyStores : [{
+                name: "View Offers",
+                price: "N/A",
+                distance: "Online",
+                link: ninjaData.data.products[0]?.product_offers_page_url,
+              }],
               priceHistory: null,
             };
 
-            // Update product rating and reviews from real data if available
-            if (product.product_rating) {
-              productData.rating = product.product_rating;
+            // Update product rating and reviews from the first product
+            const firstProduct = ninjaData.data.products[0];
+            if (firstProduct.product_rating) {
+              productData.rating = firstProduct.product_rating;
             }
-            if (product.product_num_reviews) {
-              productData.reviewCount = product.product_num_reviews;
+            if (firstProduct.product_num_reviews) {
+              productData.reviewCount = firstProduct.product_num_reviews;
             }
 
-            console.log("Real-time pricing data retrieved successfully from OpenWeb Ninja");
+            console.log(`Real-time pricing data retrieved: ${top5Offers.length} offers, best price: ${bestPrice}`);
           } else {
             console.log("No product results found in OpenWeb Ninja response");
           }
