@@ -158,7 +158,8 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           const ninjaData = await ninjaResponse.json();
           console.log("OpenWeb Ninja response received:", ninjaData.status);
 
-          console.log((ninjaData.status, ninjaData.data, ninjaData.data.length));
+          console.log(ninjaData.status);
+          console.log(ninjaData.data);
 
           if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.length > 0) {
             // Get the first product result (most relevant)
