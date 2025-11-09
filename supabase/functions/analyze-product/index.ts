@@ -271,10 +271,31 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
               `Filtered ${matchingProducts.length} matching products from ${ninjaData.data.products.length} total products`,
             );
 
+            // Helper function to get country code from coordinates
+            const getCountryCode = async (lat: number, lon: number): Promise<string | null> => {
+              try {
+                const response = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=3&addressdetails=1`,
+                  {
+                    headers: {
+                      "User-Agent": "PriceHunt/1.0",
+                    },
+                  }
+                );
+                if (response.ok) {
+                  const data = await response.json();
+                  return data.address?.country_code?.toLowerCase() || null;
+                }
+              } catch (e) {
+                console.error("Error reverse geocoding store:", e);
+              }
+              return null;
+            };
+
             // Process all matching products
             const allOffers: any[] = [];
 
-            matchingProducts.forEach((product: any) => {
+            for (const product of matchingProducts) {
               // Get main offer
               if (product.offer) {
                 const offer = {
@@ -287,12 +308,14 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                   link: product.offer.offer_page_url,
                   lat: product.offer.store_lat,
                   lon: product.offer.store_lon,
+                  countryCode: null as string | null,
                 };
 
-                // Calculate distance if coordinates available
+                // Calculate distance and get country if coordinates available
                 if (location?.latitude && location?.longitude && offer.lat && offer.lon) {
                   offer.distanceKm = calculateDistance(location.latitude, location.longitude, offer.lat, offer.lon);
                   offer.distance = `${offer.distanceKm.toFixed(1)} km`;
+                  offer.countryCode = await getCountryCode(offer.lat, offer.lon);
                 }
 
                 allOffers.push(offer);
@@ -300,7 +323,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
               // Get additional offers
               if (product.offers && Array.isArray(product.offers)) {
-                product.offers.forEach((offer: any) => {
+                for (const offer of product.offers) {
                   const offerData = {
                     name: offer.store_name || "Online Store",
                     price: offer.price || "N/A",
@@ -311,9 +334,10 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                     link: offer.offer_page_url,
                     lat: offer.store_lat,
                     lon: offer.store_lon,
+                    countryCode: null as string | null,
                   };
 
-                  // Calculate distance if coordinates available
+                  // Calculate distance and get country if coordinates available
                   if (location?.latitude && location?.longitude && offerData.lat && offerData.lon) {
                     offerData.distanceKm = calculateDistance(
                       location.latitude,
@@ -322,18 +346,42 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                       offerData.lon,
                     );
                     offerData.distance = `${offerData.distanceKm.toFixed(1)} km`;
+                    offerData.countryCode = await getCountryCode(offerData.lat, offerData.lon);
                   }
 
                   allOffers.push(offerData);
-                });
+                }
               }
-            });
+            }
 
-            // Use AI to filter and select best deals within 100km radius
+            // Filter offers to only include those from the user's country
+            let countryFilteredOffers = allOffers;
+            if (countryCode && countryCode !== "us") {
+              countryFilteredOffers = allOffers.filter((offer) => {
+                // Keep online stores (no coordinates) only if no local stores available
+                if (!offer.lat || !offer.lon || offer.distanceKm === 0) {
+                  return false;
+                }
+                // Keep only stores from the same country
+                return offer.countryCode === countryCode.toLowerCase();
+              });
+              
+              console.log(`Filtered to ${countryFilteredOffers.length} offers from country ${countryCode} (from ${allOffers.length} total)`);
+              
+              // If no local offers found, keep online stores as fallback
+              if (countryFilteredOffers.length === 0) {
+                console.log("No local offers found, keeping online stores as fallback");
+                countryFilteredOffers = allOffers.filter((offer) => offer.distanceKm === 0);
+              }
+            } else {
+              countryFilteredOffers = allOffers;
+            }
+
+            // Use AI to filter and select best deals within 100km radius from country-filtered offers
             let top5Offers = [];
-            if (location?.latitude && location?.longitude && allOffers.length > 0) {
+            if (location?.latitude && location?.longitude && countryFilteredOffers.length > 0) {
               try {
-                console.log(`Using AI to select best deals from ${allOffers.length} offers`);
+                console.log(`Using AI to select best deals from ${countryFilteredOffers.length} country-filtered offers`);
                 
                 const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                   method: "POST",
@@ -347,6 +395,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
                       {
                         role: "system",
                         content: `You are a shopping assistant that helps select the best product deals. 
+CRITICAL: ALL offers provided are already filtered to ONLY include stores from the user's country (${userLocation?.country || 'Unknown'}).
 Analyze the offers and select up to 5 best deals that are within 100km radius from the user.
 Consider: distance (prefer closer), price (prefer lower), and store rating (prefer higher).
 Return ONLY a JSON array of indices (0-based) of the selected offers, e.g., [0, 3, 5, 7, 9]`
@@ -355,12 +404,12 @@ Return ONLY a JSON array of indices (0-based) of the selected offers, e.g., [0, 
                         role: "user",
                         content: `User location: ${userLocation?.city || 'Unknown'}, ${userLocation?.country || 'Unknown'}
 
-Available offers:
-${allOffers.map((offer, idx) => 
-  `${idx}. ${offer.name} - ${offer.price} - ${offer.distance} - Rating: ${offer.rating || 'N/A'}`
+Available offers (all from ${userLocation?.country || 'Unknown'}):
+${countryFilteredOffers.map((offer, idx) => 
+  `${idx}. ${offer.name} - ${offer.price} - ${offer.distance} (${offer.distanceKm.toFixed(1)}km) - Rating: ${offer.rating || 'N/A'}`
 ).join('\n')}
 
-Select up to 5 best offers that are within 100km radius. Return only the array of indices.`
+Select up to 5 best offers within 100km radius. Return only the array of indices.`
                       }
                     ],
                   }),
@@ -376,9 +425,9 @@ Select up to 5 best offers that are within 100km radius. Return only the array o
                     if (jsonMatch) {
                       const selectedIndices = JSON.parse(jsonMatch[0]);
                       top5Offers = selectedIndices
-                        .filter((idx: number) => idx >= 0 && idx < allOffers.length)
+                        .filter((idx: number) => idx >= 0 && idx < countryFilteredOffers.length)
                         .slice(0, 5)
-                        .map((idx: number) => allOffers[idx]);
+                        .map((idx: number) => countryFilteredOffers[idx]);
                       
                       console.log(`AI selected ${top5Offers.length} offers`);
                     }
@@ -391,11 +440,11 @@ Select up to 5 best offers that are within 100km radius. Return only the array o
 
             // Fallback: if AI selection failed or no location, use traditional filtering
             if (top5Offers.length === 0) {
-              let filteredOffers = allOffers;
+              let filteredOffers = countryFilteredOffers;
               if (location?.latitude && location?.longitude) {
-                filteredOffers = allOffers.filter((offer) => offer.distanceKm === 0 || offer.distanceKm <= 100);
+                filteredOffers = countryFilteredOffers.filter((offer) => offer.distanceKm > 0 && offer.distanceKm <= 100);
                 console.log(
-                  `Filtered ${filteredOffers.length} offers within 100km from ${allOffers.length} total offers`,
+                  `Filtered ${filteredOffers.length} offers within 100km from ${countryFilteredOffers.length} country-filtered offers`,
                 );
               }
 
