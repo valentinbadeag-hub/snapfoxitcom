@@ -249,9 +249,9 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
     let userLocation = null;
     if (location?.latitude && location?.longitude) {
       try {
-        // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key required)
+        // Use OpenStreetMap Nominatim for reverse geocoding with higher zoom for better detail
         const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=10&addressdetails=1`,
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1`,
           {
             headers: {
               "User-Agent": "PriceHunt/1.0",
@@ -261,8 +261,20 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
         if (geocodeResponse.ok) {
           const geocodeData = await geocodeResponse.json();
+          console.log("Geocode response:", JSON.stringify(geocodeData.address));
+          
+          // Try multiple address fields to identify city
+          const city = geocodeData.address?.city || 
+                      geocodeData.address?.town || 
+                      geocodeData.address?.village || 
+                      geocodeData.address?.municipality ||
+                      geocodeData.address?.county ||
+                      geocodeData.address?.state ||
+                      geocodeData.address?.region ||
+                      "Unknown";
+          
           userLocation = {
-            city: geocodeData.address?.city || geocodeData.address?.town || geocodeData.address?.village || "Unknown",
+            city: city,
             country: geocodeData.address?.country || "Unknown",
           };
           console.log("Location identified:", userLocation);
