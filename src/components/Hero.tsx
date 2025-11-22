@@ -75,30 +75,37 @@ const Hero = () => {
           </div>
           
           {/* Feature Pills */}
-          <div className="flex flex-wrap gap-3 justify-center pt-8">
-            {[
-              { text: "📸 Snap & Scan", action: () => {
-                document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
-                setTimeout(() => {
-                  window.dispatchEvent(new Event('triggerCamera'));
-                }, 600);
-              }},
-              { text: "⭐ Real Reviews", action: () => {
-                document.getElementById('recent-scans')?.scrollIntoView({ behavior: 'smooth' });
-              }},
-              { text: "💰 Best Prices", action: null },
-              { text: "🎯 Smart Tips", action: null },
-              { text: "🤖 Your Shopping AI Assistant", action: null }
-            ].map((feature, i) => (
-              <div 
-                key={feature.text}
-                className={`px-5 py-2 bg-card rounded-full shadow-[var(--shadow-soft)] text-sm font-medium animate-scale-in border-2 border-primary/20 ${feature.action ? 'cursor-pointer hover:scale-105 hover:border-primary/40 transition-all' : ''}`}
-                style={{ animationDelay: `${i * 100}ms` }}
-                onClick={feature.action || undefined}
-              >
-                {feature.text}
-              </div>
-            ))}
+          <div className="flex flex-col items-center gap-3 pt-8">
+            <div className="flex flex-wrap gap-3 justify-center">
+              {[
+                { text: "📸 Snap & Scan", action: () => {
+                  document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+                  setTimeout(() => {
+                    window.dispatchEvent(new Event('triggerCamera'));
+                  }, 600);
+                }},
+                { text: "⭐ Real Reviews", action: () => {
+                  document.getElementById('recent-scans')?.scrollIntoView({ behavior: 'smooth' });
+                }},
+                { text: "💰 Best Prices", action: null },
+                { text: "🎯 Smart Tips", action: null }
+              ].map((feature, i) => (
+                <div 
+                  key={feature.text}
+                  className={`px-5 py-2 bg-card rounded-full shadow-[var(--shadow-soft)] text-sm font-medium animate-scale-in border-2 border-primary/20 ${feature.action ? 'cursor-pointer hover:scale-105 hover:border-primary/40 transition-all' : ''}`}
+                  style={{ animationDelay: `${i * 100}ms` }}
+                  onClick={feature.action || undefined}
+                >
+                  {feature.text}
+                </div>
+              ))}
+            </div>
+            <div 
+              className="px-5 py-2 bg-card rounded-full shadow-[var(--shadow-soft)] text-sm font-medium animate-scale-in border-2 border-primary/20"
+              style={{ animationDelay: '400ms' }}
+            >
+              🤖 Your Shopping AI Assistant
+            </div>
           </div>
         </div>
       </div>
