@@ -87,7 +87,8 @@ const Hero = () => {
                 document.getElementById('recent-scans')?.scrollIntoView({ behavior: 'smooth' });
               }},
               { text: "💰 Best Prices", action: null },
-              { text: "🎯 Smart Tips", action: null }
+              { text: "🎯 Smart Tips", action: null },
+              { text: "🤖 Your Shopping AI Assistant", action: null }
             ].map((feature, i) => (
               <div 
                 key={feature.text}
