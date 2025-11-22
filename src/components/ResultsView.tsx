@@ -242,8 +242,12 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             {/* Price Hunt */}
             <Card className="p-6 shadow-[var(--shadow-float)] border-2 border-primary/20 bg-gradient-to-br from-card to-accent/5 animate-scale-in" style={{ animationDelay: "0.1s" }}>
               <div className="flex items-center gap-2 mb-4">
+                <div className="animate-sniff">💰</div>
                 <TrendingDown className="w-5 h-5 text-accent" />
                 <h2 className="text-xl font-semibold text-foreground">Hunt smarter, not harder</h2>
+                {productData.userLocation && (
+                  <span className="ml-auto text-sm text-muted-foreground">📍</span>
+                )}
               </div>
               
               {isPriceAvailable ? (
@@ -264,9 +268,12 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                           📍 {productData.dealerDistance}
                         </p>
                       )}
-                      {productData.averagePrice && (
+                       {productData.averagePrice && (
                         <p className="text-xs text-accent font-medium mt-2">
                           💰 Market avg: {productData.currency}{productData.averagePrice}
+                          {productData.priceHistory?.note && (
+                            <span className="ml-2 text-muted-foreground">({productData.priceHistory.note})</span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -324,13 +331,13 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 </>
               ) : (
                 <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 text-center">
-                  <div className="text-4xl mb-3">💕</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No deals found right now</h3>
+                  <div className="text-4xl mb-3 animate-bounce-gentle">🌍</div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No local gems—global view? 🌍</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We couldn't find pricing for this product online. Try searching on your favorite shopping site!
+                    We couldn't find pricing in your area. Try expanding your search globally!
                   </p>
                   <Button variant="outline" size="sm">
-                    Manual Search →
+                    Search Globally →
                   </Button>
                 </div>
               )}

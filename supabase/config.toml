@@ -1,1 +1,10 @@
 project_id = "egkxizoqslvcbksquiue"
+
+[functions.analyze-product]
+verify_jwt = false
+
+[functions.product-question]
+verify_jwt = false
+
+[functions.fetch_geo_prices]
+verify_jwt = false
