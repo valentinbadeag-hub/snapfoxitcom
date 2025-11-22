@@ -41,19 +41,9 @@ const ScanDemo = () => {
   const [showResults, setShowResults] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [productData, setProductData] = useState<ProductData | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  // Update time every minute
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
-    
-    return () => clearInterval(timer);
-  }, []);
 
   // Listen for external camera trigger and history item clicks
   useEffect(() => {
@@ -298,95 +288,32 @@ const ScanDemo = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-8 items-center">
-                {/* Left: 3D Phone Mockup */}
-                <div className="relative mx-auto max-w-[320px] lg:max-w-[280px]">
-                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl transform hover:scale-105 transition-transform duration-500"
-                       style={{
-                         transform: 'rotateY(-8deg) rotateX(3deg)',
-                         transformStyle: 'preserve-3d',
-                         boxShadow: '20px 30px 60px rgba(0, 0, 0, 0.3)'
-                       }}>
-                    {/* Phone notch */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground rounded-b-3xl z-10" />
-                    
-                    {/* Phone screen */}
-                    <div className="relative bg-background rounded-[2.5rem] overflow-hidden">
-                      {/* Status bar */}
-                      <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-background/95 to-transparent z-10 flex items-center justify-between px-6 pt-2">
-                        <span className="text-[10px] font-medium">
-                          {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
-                        </span>
-                        <div className="flex gap-1 items-center">
-                          <div className="w-3 h-2 border border-foreground/40 rounded-sm relative">
-                            <div className="absolute inset-0.5 bg-foreground/60 rounded-[1px]" />
-                          </div>
-                        </div>
+                <div className="relative aspect-[4/3] max-w-md mx-auto bg-gradient-to-br from-muted to-primary/10 rounded-3xl overflow-hidden border-4 border-primary/20 shadow-[var(--shadow-float)] group cursor-pointer hover:border-primary/40 transition-all"
+                     onClick={handleCameraClick}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent to-primary/5" />
+                  
+                  <div className="relative h-full flex items-center justify-center p-8">
+                    <div className="text-center space-y-6">
+                      <div className="w-24 h-24 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                        <Camera className="w-12 h-12 text-primary" />
                       </div>
-                      
-                      {/* Mini camera view */}
-                      <div 
-                        className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 flex items-center justify-center cursor-pointer"
-                        onClick={handleCameraClick}
-                      >
-                        <div className="text-center space-y-2 pt-6">
-                          <div className="w-12 h-12 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                            <Camera className="w-6 h-6 text-primary" />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">Tap to scan</p>
-                        </div>
-                        
-                        {/* Mini corner guides */}
-                        <div className="absolute top-12 left-3 w-6 h-6 border-t-3 border-l-3 border-primary/40 rounded-tl-lg" />
-                        <div className="absolute top-12 right-3 w-6 h-6 border-t-3 border-r-3 border-primary/40 rounded-tr-lg" />
-                        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-3 border-l-3 border-primary/40 rounded-bl-lg" />
-                        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-3 border-r-3 border-primary/40 rounded-br-lg" />
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-foreground">Ready to Scan</p>
+                        <p className="text-sm text-muted-foreground">Tap to capture or upload a product photo</p>
+                      </div>
+                      <div className="flex gap-2 justify-center text-xs text-muted-foreground">
+                        <span className="px-3 py-1 bg-card rounded-full">📸 High Quality</span>
+                        <span className="px-3 py-1 bg-card rounded-full">⚡ Instant</span>
                       </div>
                     </div>
-                    
-                    {/* Phone home indicator */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-background/30 rounded-full" />
                   </div>
                   
-                  {/* Floating shadow */}
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-foreground/20 rounded-full blur-xl" />
+                  {/* Corner guides */}
+                  <div className="absolute top-8 left-8 w-12 h-12 border-t-4 border-l-4 border-primary/50 rounded-tl-2xl" />
+                  <div className="absolute top-8 right-8 w-12 h-12 border-t-4 border-r-4 border-primary/50 rounded-tr-2xl" />
+                  <div className="absolute bottom-8 left-8 w-12 h-12 border-b-4 border-l-4 border-primary/50 rounded-bl-2xl" />
+                  <div className="absolute bottom-8 right-8 w-12 h-12 border-b-4 border-r-4 border-primary/50 rounded-br-2xl" />
                 </div>
-
-                {/* Right: Enlarged Camera View */}
-                <div className="relative">
-                  <div className="relative aspect-square max-w-md mx-auto bg-gradient-to-br from-muted to-primary/10 rounded-3xl overflow-hidden border-4 border-primary/20 shadow-[var(--shadow-float)] group cursor-pointer hover:border-primary/40 transition-all"
-                       onClick={handleCameraClick}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-primary/5" />
-                    
-                    <div className="relative h-full flex items-center justify-center p-8">
-                      <div className="text-center space-y-6">
-                        <div className="w-24 h-24 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                          <Camera className="w-12 h-12 text-primary" />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-lg font-semibold text-foreground">Ready to Scan</p>
-                          <p className="text-sm text-muted-foreground">Tap anywhere to capture or upload a product photo</p>
-                        </div>
-                        <div className="flex gap-2 justify-center text-xs text-muted-foreground">
-                          <span className="px-3 py-1 bg-card rounded-full">📸 High Quality</span>
-                          <span className="px-3 py-1 bg-card rounded-full">⚡ Instant</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Enhanced corner guides */}
-                    <div className="absolute top-8 left-8 w-12 h-12 border-t-4 border-l-4 border-primary/50 rounded-tl-2xl" />
-                    <div className="absolute top-8 right-8 w-12 h-12 border-t-4 border-r-4 border-primary/50 rounded-tr-2xl" />
-                    <div className="absolute bottom-8 left-8 w-12 h-12 border-b-4 border-l-4 border-primary/50 rounded-bl-2xl" />
-                    <div className="absolute bottom-8 right-8 w-12 h-12 border-b-4 border-r-4 border-primary/50 rounded-br-2xl" />
-                    
-                    {/* Scan line animation */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-scan-line" />
-                    </div>
-                  </div>
-                </div>
-              </div>
                 
                 {/* Hidden file inputs */}
                 <input
