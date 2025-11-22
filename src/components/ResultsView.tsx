@@ -482,7 +482,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                       Best Deal! 🎉
                     </div>
                     <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-xs text-muted-foreground mr-1">{displayData.currency}</span>
                       <span className="text-4xl font-bold text-foreground">{displayData.bestPrice}</span>
                     </div>
                     <div className="space-y-1 mb-4">
@@ -494,7 +493,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                       )}
                       {displayData.averagePrice && (
                         <p className="text-xs text-accent font-medium mt-2">
-                          💰 Market avg: {displayData.currency}{displayData.averagePrice}
+                          💰 Market avg: {displayData.averagePrice} {displayData.currency}
                           {displayData.priceHistory?.note && (
                             <span className="ml-2 text-muted-foreground">({displayData.priceHistory.note})</span>
                           )}
@@ -523,7 +522,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                     <p className="text-sm font-medium text-muted-foreground mb-3">Market Price Range</p>
                     <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4">
                       <p className="text-2xl font-bold text-foreground">
-                        {displayData.currency}{displayData.priceRange}
+                        {displayData.priceRange}
                       </p>
                     </div>
                   </div>
@@ -544,7 +543,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                               <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-primary">{displayData.currency}{store.price}</p>
+                              <p className="text-sm font-semibold text-primary">{store.price}</p>
                               {store.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
                             </div>
                           </div>
