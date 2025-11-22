@@ -54,19 +54,26 @@ serve(async (req) => {
           const geocodeData = await geocodeResponse.json();
           console.log("Geocode response:", JSON.stringify(geocodeData.address));
 
-          // Try multiple address fields to identify city
-          const city =
-            geocodeData.address?.city ||
-            geocodeData.address?.town ||
-            geocodeData.address?.village ||
-            geocodeData.address?.municipality ||
-            geocodeData.address?.county ||
-            geocodeData.address?.state ||
-            geocodeData.address?.region ||
-            "Unknown";
+          const address = geocodeData.address;
+          const country = address?.country || "Unknown";
+          const countryCode = address?.country_code?.toLowerCase() || "us";
 
-          const country = geocodeData.address?.country || "Unknown";
-          const countryCode = geocodeData.address?.country_code?.toLowerCase() || "us";
+          // Extract the most appropriate city for SERP API compatibility
+          // Priority: city > county > state (prefer larger administrative divisions)
+          let serpCity = address?.city;
+          
+          // If no city, try to find a larger administrative division
+          if (!serpCity) {
+            // For smaller locations (town, village, suburb), prefer county or state
+            if (address?.town || address?.village || address?.suburb) {
+              serpCity = address?.county || address?.state || address?.town || address?.village;
+            } else {
+              serpCity = address?.county || address?.state || address?.municipality || address?.region;
+            }
+          }
+          
+          const city = serpCity || "Unknown";
+          console.log(`Location identified - Original: ${address?.city || address?.town || address?.village}, SERP City: ${city}`);
           
           // Map country codes to languages
           const languageMap: { [key: string]: string } = {
