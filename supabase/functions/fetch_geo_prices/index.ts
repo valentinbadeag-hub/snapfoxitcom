@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { product_name, country = "us", city = "" } = await req.json();
+    const { product_name, country = "us", location = "", uule = "" } = await req.json();
     const apiKey = Deno.env.get("SERPAPI_KEY");
 
     if (!apiKey) {
@@ -23,7 +23,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Fetching prices for: ${product_name}, country: ${country}, city: ${city}`);
+    console.log(`Fetching prices for: ${product_name}, country: ${country}, location: ${location}, uule: ${uule ? 'provided' : 'none'}`);
 
     const params = new URLSearchParams({
       engine: "google_shopping",
@@ -33,9 +33,15 @@ serve(async (req) => {
       api_key: apiKey,
     });
 
-    // Add location if city is provided
-    if (city) {
-      params.append("location", city);
+    // Add UULE parameter for precise location targeting (preferred)
+    if (uule) {
+      params.append("uule", uule);
+      console.log("Using UULE for precise geo-targeting");
+    }
+    // Fallback to location parameter if UULE not available
+    else if (location) {
+      params.append("location", location);
+      console.log(`Using location parameter: ${location}`);
     }
 
     // Sort by price (low to high) to get best deals first

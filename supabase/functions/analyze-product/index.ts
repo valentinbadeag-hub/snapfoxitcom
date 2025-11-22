@@ -5,6 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to generate UULE parameter from lat/lon coordinates
+function generateUULE(latitude: number, longitude: number): string {
+  // UULE encoding: Encode the location name "lat,lon" in base64 with Google's UULE format
+  const locationString = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+  
+  // Convert to bytes and base64
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(locationString);
+  const base64 = btoa(String.fromCharCode(...bytes));
+  
+  // Google UULE format: w+CAIQICI followed by the base64 string
+  return `w+CAIQICI${base64.replace(/=/g, '')}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,7 +35,7 @@ serve(async (req) => {
     console.log("Analyzing product image with location:", location ? "provided" : "not provided");
 
     // Step 1: Determine user location and language from coordinates using reverse geocoding
-    let userLocation: { city: string; country: string; language: string } | null = null;
+    let userLocation: { city: string; country: string; language: string; countryCode: string; uule?: string; serpLocation?: string } | null = null;
     let detectedLanguage = "English"; // Default language
     
     if (location?.latitude && location?.longitude) {
@@ -80,24 +94,44 @@ serve(async (req) => {
           
           detectedLanguage = languageMap[countryCode] || "English";
 
+          // Generate UULE parameter from coordinates for precise SERP API location
+          const uule = generateUULE(location.latitude, location.longitude);
+          
+          // Format location for SERP API: "City, Country"
+          const serpLocation = `${city}, ${country}`;
+
           userLocation = {
             city: city,
             country: country,
+            countryCode: countryCode,
             language: detectedLanguage,
+            uule: uule,
+            serpLocation: serpLocation,
           };
           console.log("Location and language identified:", userLocation);
         } else {
           console.error("Geocoding error:", geocodeResponse.status);
-          userLocation = { city: "Unknown", country: "Unknown", language: "English" };
+          userLocation = { 
+            city: "Unknown", 
+            country: "Unknown", 
+            countryCode: "us",
+            language: "English" 
+          };
         }
       } catch (geocodeError) {
         console.error("Error reverse geocoding location:", geocodeError);
-        userLocation = { city: "Unknown", country: "Unknown", language: "English" };
+        userLocation = { 
+          city: "Unknown", 
+          country: "Unknown", 
+          countryCode: "us",
+          language: "English" 
+        };
       }
     } else if (location) {
       userLocation = {
         city: location.city || "Unknown",
         country: location.country || "Unknown",
+        countryCode: "us",
         language: "English",
       };
     }
@@ -202,23 +236,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
         let city = "";
 
         if (userLocation) {
-          // Map country name to country code (add more mappings as needed)
-          const countryMap: { [key: string]: string } = {
-            "United States": "us",
-            "United Kingdom": "uk",
-            "Canada": "ca",
-            "Australia": "au",
-            "Germany": "de",
-            "France": "fr",
-            "Spain": "es",
-            "Italy": "it",
-            "Japan": "jp",
-            "India": "in",
-            "Brazil": "br",
-            "Mexico": "mx",
-          };
-          
-          countryCode = countryMap[userLocation.country] || "us";
+          countryCode = userLocation.countryCode || "us";
           city = userLocation.city;
         }
 
@@ -237,7 +255,8 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           body: JSON.stringify({
             product_name: productData.productName,
             country: countryCode,
-            city: city,
+            location: userLocation?.serpLocation || city,
+            uule: userLocation?.uule,
           }),
         });
 
