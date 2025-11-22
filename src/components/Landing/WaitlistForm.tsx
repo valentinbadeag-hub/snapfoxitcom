@@ -59,9 +59,9 @@ const WaitlistForm = () => {
       <div className="container mx-auto max-w-2xl">
         <div className="text-center mb-8 animate-slide-up">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Join the <span className="relative inline-block">
-              <span className="relative z-10">FOX list</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-mint/30 via-blush/30 to-sunshine/30 animate-highlight-reveal origin-left"></span>
+            Join the <span className="relative inline-block overflow-hidden">
+              <span className="relative z-10 animate-text-reveal">FOX list</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-sunshine via-mint to-blush animate-highlight-reveal"></span>
             </span>
           </h2>
           <p className="text-lg text-muted-foreground">
