@@ -3,9 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import type { User } from "@supabase/supabase-js";
 
 interface ProductData {
   productName: string;
@@ -84,10 +86,127 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [answers, setAnswers] = useState<string[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedData, setTranslatedData] = useState<ProductData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Use translated data if available, otherwise use original
   const displayData = translatedData || productData;
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Check if product is already favorited
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, displayData.productName]);
+
+  const checkIfFavorite = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('product_name', displayData.productName)
+        .maybeSingle();
+
+      if (error) throw error;
+      setIsFavorite(!!data);
+    } catch (error) {
+      console.error('Error checking favorite:', error);
+    }
+  };
+
+  const handleSaveFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to save favorites",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setSavingFavorite(true);
+
+    try {
+      if (isFavorite) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_name', displayData.productName);
+
+        if (error) throw error;
+
+        setIsFavorite(false);
+        toast({
+          title: "Removed from favorites",
+          description: "Product removed from your favorites",
+        });
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            product_name: displayData.productName,
+            category: displayData.category,
+            description: displayData.description,
+            rating: displayData.rating,
+            review_count: displayData.reviewCount,
+            price_range: displayData.priceRange,
+            best_price: displayData.bestPrice,
+            best_dealer: displayData.bestDealer,
+            currency: displayData.currency,
+            average_price: displayData.averagePrice,
+            pros: displayData.pros,
+            cons: displayData.cons,
+            usage_tips: displayData.usageTips,
+            recommendation: displayData.recommendation,
+          });
+
+        if (error) throw error;
+
+        setIsFavorite(true);
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        toast({
+          title: "Added to favorites! ❤️",
+          description: "Product saved to your favorites",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving favorite:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save favorite. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingFavorite(false);
+    }
+  };
 
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
@@ -504,9 +623,15 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             {/* Action Buttons */}
             <Card className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-card">
               <div className="space-y-3">
-                <Button variant="outline" size="lg" className="w-full">
-                  <Heart className="w-5 h-5" />
-                  Love It!
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full"
+                  onClick={handleSaveFavorite}
+                  disabled={savingFavorite}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                  {isFavorite ? 'Loved It!' : 'Love It!'}
                 </Button>
                 <Button variant="outline" size="lg" className="w-full">
                   <Share2 className="w-5 h-5" />

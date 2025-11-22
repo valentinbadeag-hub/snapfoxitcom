@@ -1,7 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Sparkles, Upload } from "lucide-react";
+import { Camera, Sparkles, Upload, Heart, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-primary/5">
       {/* Floating decorative elements */}
@@ -72,6 +91,26 @@ const Hero = () => {
               <Upload className="w-5 h-5" />
               Upload Photo
             </Button>
+            {user ? (
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => navigate('/favorites')}
+                className="group"
+              >
+                <Heart className="w-5 h-5 group-hover:fill-primary group-hover:text-primary transition-all" />
+                My Favorites
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => navigate('/auth')}
+              >
+                <LogIn className="w-5 h-5" />
+                Login / Sign Up
+              </Button>
+            )}
           </div>
           
           {/* Feature Pills */}
