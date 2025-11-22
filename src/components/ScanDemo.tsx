@@ -41,9 +41,19 @@ const ScanDemo = () => {
   const [showResults, setShowResults] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [productData, setProductData] = useState<ProductData | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
 
   // Listen for external camera trigger and history item clicks
   useEffect(() => {
@@ -288,19 +298,29 @@ const ScanDemo = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Phone Frame */}
-                <div className="relative mx-auto max-w-[380px]">
-                  {/* Phone body */}
-                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl">
+                {/* 3D Floating Phone Frame */}
+                <div className="relative mx-auto max-w-[380px] perspective-1000">
+                  {/* Phone body with 3D transform */}
+                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl transform hover:rotate-y-2 hover:-rotate-x-1 transition-transform duration-500 hover:scale-105"
+                       style={{
+                         transform: 'rotateY(-5deg) rotateX(2deg)',
+                         transformStyle: 'preserve-3d',
+                         boxShadow: '20px 30px 60px rgba(0, 0, 0, 0.3), 40px 60px 100px rgba(0, 0, 0, 0.2)'
+                       }}>
                     {/* Phone notch */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-foreground rounded-b-3xl z-10" />
                     
                     {/* Phone screen */}
                     <div className="relative bg-background rounded-[2.5rem] overflow-hidden">
-                      {/* Status bar */}
+                      {/* Status bar with real time */}
                       <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background/95 to-transparent z-10 flex items-center justify-between px-8 pt-2">
-                        <span className="text-xs font-medium">9:41</span>
+                        <span className="text-xs font-medium">
+                          {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
+                        </span>
                         <div className="flex gap-1 items-center">
+                          <svg className="w-4 h-3" viewBox="0 0 16 12" fill="none">
+                            <path d="M1 6C1 6 3.5 1 8 1C12.5 1 15 6 15 6C15 6 12.5 11 8 11C3.5 11 1 6 1 6Z" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                          </svg>
                           <div className="w-4 h-3 border border-foreground/40 rounded-sm relative">
                             <div className="absolute inset-0.5 bg-foreground/60 rounded-[1px]" />
                           </div>
@@ -333,6 +353,9 @@ const ScanDemo = () => {
                     {/* Phone home indicator */}
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-background/30 rounded-full" />
                   </div>
+                  
+                  {/* Floating shadow beneath phone */}
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-foreground/20 rounded-full blur-2xl" />
                 </div>
                 
                 {/* Hidden file inputs */}
