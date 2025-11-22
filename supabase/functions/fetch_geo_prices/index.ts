@@ -1,63 +1,63 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { product_name, country = 'us', city = '' } = await req.json();
-    const apiKey = Deno.env.get('SERPAPI_KEY');
+    const { product_name, country = "us", city = "" } = await req.json();
+    const apiKey = Deno.env.get("SERPAPI_KEY");
 
     if (!apiKey) {
-      console.error('SERPAPI_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'SerpAPI key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("SERPAPI_KEY not configured");
+      return new Response(JSON.stringify({ error: "SerpAPI key not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`Fetching prices for: ${product_name}, country: ${country}, city: ${city}`);
 
     const params = new URLSearchParams({
-      engine: 'google_shopping',
+      engine: "google_shopping",
       q: product_name,
       gl: country.toLowerCase(),
-      no_cache: 'true',
-      api_key: apiKey
+      no_cache: "true",
+      api_key: apiKey,
     });
 
     // Add location if city is provided
     if (city) {
-      params.append('location', city);
+      params.append("location", city);
     }
 
     // Sort by price (low to high) to get best deals first
-    params.append('sort_by', '1');
+    params.append("sort_by", "1");
 
     const response = await fetch(`https://serpapi.com/search?${params}`);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('SerpAPI error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch pricing data' }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("SerpAPI error:", response.status, errorText);
+      return new Response(JSON.stringify({ error: "Failed to fetch pricing data" }), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
-    console.log('SerpAPI response:', JSON.stringify(data).substring(0, 500));
+    console.log("SerpAPI response:", JSON.stringify(data).substring(0, 500));
 
     if (data.shopping_results && data.shopping_results.length > 0) {
       const offers = data.shopping_results.slice(0, 5); // Top 5 deals
-      
+
       // Find best deal (lowest price)
       const best = offers.reduce((min: any, item: any) => {
         const currentPrice = parseFloat(item.price) || parseFloat(item.extracted_price) || Infinity;
@@ -69,10 +69,11 @@ serve(async (req) => {
       const validPrices = offers
         .map((item: any) => parseFloat(item.price) || parseFloat(item.extracted_price))
         .filter((price: number) => !isNaN(price) && price > 0);
-      
-      const avg_price = validPrices.length > 0
-        ? validPrices.reduce((sum: number, price: number) => sum + price, 0) / validPrices.length
-        : 0;
+
+      const avg_price =
+        validPrices.length > 0
+          ? validPrices.reduce((sum: number, price: number) => sum + price, 0) / validPrices.length
+          : 0;
 
       // Format offers for response
       const formattedOffers = offers.map((offer: any) => ({
@@ -82,9 +83,10 @@ serve(async (req) => {
         link: offer.link,
         thumbnail: offer.thumbnail,
         rating: offer.rating,
-        reviews: offer.reviews
+        reviews: offer.reviews,
       }));
 
+      console.log(best);
       return new Response(
         JSON.stringify({
           best_deal: {
@@ -92,28 +94,27 @@ serve(async (req) => {
             price: best.price || best.extracted_price,
             source: best.source,
             link: best.link,
-            thumbnail: best.thumbnail
+            thumbnail: best.thumbnail,
           },
           avg_price: avg_price.toFixed(2),
           offers: formattedOffers,
-          currency: data.search_parameters?.currency || 'USD',
-          location: data.search_parameters?.location || country
+          currency: data.search_parameters?.currency || "USD",
+          location: data.search_parameters?.location || country,
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    console.log('No shopping results found');
-    return new Response(
-      JSON.stringify({ error: 'No deals found', message: 'No local gems—global view? 🌍' }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    console.log("No shopping results found");
+    return new Response(JSON.stringify({ error: "No deals found", message: "No local gems—global view? 🌍" }), {
+      status: 404,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error in fetch_geo_prices:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error in fetch_geo_prices:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
