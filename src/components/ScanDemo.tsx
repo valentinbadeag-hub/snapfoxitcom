@@ -288,26 +288,51 @@ const ScanDemo = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Mock Camera View */}
-                <div 
-                  className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 rounded-2xl overflow-hidden border-2 border-dashed border-primary/30 flex items-center justify-center group cursor-pointer hover:border-primary/60 transition-all"
-                  onClick={handleCameraClick}
-                >
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Camera className="w-10 h-10 text-primary" />
+                {/* Phone Frame */}
+                <div className="relative mx-auto max-w-[380px]">
+                  {/* Phone body */}
+                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl">
+                    {/* Phone notch */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-foreground rounded-b-3xl z-10" />
+                    
+                    {/* Phone screen */}
+                    <div className="relative bg-background rounded-[2.5rem] overflow-hidden">
+                      {/* Status bar */}
+                      <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background/95 to-transparent z-10 flex items-center justify-between px-8 pt-2">
+                        <span className="text-xs font-medium">9:41</span>
+                        <div className="flex gap-1 items-center">
+                          <div className="w-4 h-3 border border-foreground/40 rounded-sm relative">
+                            <div className="absolute inset-0.5 bg-foreground/60 rounded-[1px]" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Mock Camera View */}
+                      <div 
+                        className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 overflow-hidden flex items-center justify-center group cursor-pointer transition-all"
+                        onClick={handleCameraClick}
+                      >
+                        <div className="text-center space-y-4 pt-8">
+                          <div className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Camera className="w-10 h-10 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Tap to capture or</p>
+                            <p className="text-sm font-medium text-foreground">upload a photo</p>
+                          </div>
+                        </div>
+                        
+                        {/* Corner guides */}
+                        <div className="absolute top-16 left-4 w-8 h-8 border-t-4 border-l-4 border-primary/40 rounded-tl-lg" />
+                        <div className="absolute top-16 right-4 w-8 h-8 border-t-4 border-r-4 border-primary/40 rounded-tr-lg" />
+                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-primary/40 rounded-bl-lg" />
+                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary/40 rounded-br-lg" />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tap to capture or</p>
-                      <p className="text-sm font-medium text-foreground">upload a photo</p>
-                    </div>
+                    
+                    {/* Phone home indicator */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-background/30 rounded-full" />
                   </div>
-                  
-                  {/* Corner guides */}
-                  <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-primary/40 rounded-tl-lg" />
-                  <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-primary/40 rounded-tr-lg" />
-                  <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-primary/40 rounded-bl-lg" />
-                  <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary/40 rounded-br-lg" />
                 </div>
                 
                 {/* Hidden file inputs */}
@@ -328,7 +353,7 @@ const ScanDemo = () => {
                 />
                 
                 {/* Action Buttons */}
-                <div className="space-y-3">
+                <div className="space-y-3 max-w-[380px] mx-auto">
                   <Button 
                     variant="hero" 
                     size="lg" 
