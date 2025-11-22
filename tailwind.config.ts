@@ -106,6 +106,10 @@ export default {
           "0%": { width: "0%" },
           "100%": { width: "100%" },
         },
+        "scan-line": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(400%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -118,6 +122,7 @@ export default {
         "slide-up": "slide-up 0.5s ease-out",
         "sniff": "sniff 2s ease-in-out infinite",
         "highlight-reveal": "highlight-reveal 0.8s ease-out 0.5s forwards",
+        "scan-line": "scan-line 3s ease-in-out infinite",
       },
     },
   },

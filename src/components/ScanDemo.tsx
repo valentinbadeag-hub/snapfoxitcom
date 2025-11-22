@@ -298,65 +298,95 @@ const ScanDemo = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* 3D Floating Phone Frame */}
-                <div className="relative mx-auto max-w-[380px] perspective-1000">
-                  {/* Phone body with 3D transform */}
-                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl transform hover:rotate-y-2 hover:-rotate-x-1 transition-transform duration-500 hover:scale-105"
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                {/* Left: 3D Phone Mockup */}
+                <div className="relative mx-auto max-w-[320px] lg:max-w-[280px]">
+                  <div className="relative bg-foreground rounded-[3rem] p-3 shadow-2xl transform hover:scale-105 transition-transform duration-500"
                        style={{
-                         transform: 'rotateY(-5deg) rotateX(2deg)',
+                         transform: 'rotateY(-8deg) rotateX(3deg)',
                          transformStyle: 'preserve-3d',
-                         boxShadow: '20px 30px 60px rgba(0, 0, 0, 0.3), 40px 60px 100px rgba(0, 0, 0, 0.2)'
+                         boxShadow: '20px 30px 60px rgba(0, 0, 0, 0.3)'
                        }}>
                     {/* Phone notch */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-foreground rounded-b-3xl z-10" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground rounded-b-3xl z-10" />
                     
                     {/* Phone screen */}
                     <div className="relative bg-background rounded-[2.5rem] overflow-hidden">
-                      {/* Status bar with real time */}
-                      <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background/95 to-transparent z-10 flex items-center justify-between px-8 pt-2">
-                        <span className="text-xs font-medium">
+                      {/* Status bar */}
+                      <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-background/95 to-transparent z-10 flex items-center justify-between px-6 pt-2">
+                        <span className="text-[10px] font-medium">
                           {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
                         </span>
                         <div className="flex gap-1 items-center">
-                          <svg className="w-4 h-3" viewBox="0 0 16 12" fill="none">
-                            <path d="M1 6C1 6 3.5 1 8 1C12.5 1 15 6 15 6C15 6 12.5 11 8 11C3.5 11 1 6 1 6Z" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
-                          </svg>
-                          <div className="w-4 h-3 border border-foreground/40 rounded-sm relative">
+                          <div className="w-3 h-2 border border-foreground/40 rounded-sm relative">
                             <div className="absolute inset-0.5 bg-foreground/60 rounded-[1px]" />
                           </div>
                         </div>
                       </div>
                       
-                      {/* Mock Camera View */}
+                      {/* Mini camera view */}
                       <div 
-                        className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 overflow-hidden flex items-center justify-center group cursor-pointer transition-all"
+                        className="relative aspect-square bg-gradient-to-br from-muted to-primary/10 flex items-center justify-center cursor-pointer"
                         onClick={handleCameraClick}
                       >
-                        <div className="text-center space-y-4 pt-8">
-                          <div className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Camera className="w-10 h-10 text-primary" />
+                        <div className="text-center space-y-2 pt-6">
+                          <div className="w-12 h-12 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-primary" />
                           </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Tap to capture or</p>
-                            <p className="text-sm font-medium text-foreground">upload a photo</p>
-                          </div>
+                          <p className="text-[10px] text-muted-foreground">Tap to scan</p>
                         </div>
                         
-                        {/* Corner guides */}
-                        <div className="absolute top-16 left-4 w-8 h-8 border-t-4 border-l-4 border-primary/40 rounded-tl-lg" />
-                        <div className="absolute top-16 right-4 w-8 h-8 border-t-4 border-r-4 border-primary/40 rounded-tr-lg" />
-                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-primary/40 rounded-bl-lg" />
-                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary/40 rounded-br-lg" />
+                        {/* Mini corner guides */}
+                        <div className="absolute top-12 left-3 w-6 h-6 border-t-3 border-l-3 border-primary/40 rounded-tl-lg" />
+                        <div className="absolute top-12 right-3 w-6 h-6 border-t-3 border-r-3 border-primary/40 rounded-tr-lg" />
+                        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-3 border-l-3 border-primary/40 rounded-bl-lg" />
+                        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-3 border-r-3 border-primary/40 rounded-br-lg" />
                       </div>
                     </div>
                     
                     {/* Phone home indicator */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-background/30 rounded-full" />
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-background/30 rounded-full" />
                   </div>
                   
-                  {/* Floating shadow beneath phone */}
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-foreground/20 rounded-full blur-2xl" />
+                  {/* Floating shadow */}
+                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-foreground/20 rounded-full blur-xl" />
                 </div>
+
+                {/* Right: Enlarged Camera View */}
+                <div className="relative">
+                  <div className="relative aspect-square max-w-md mx-auto bg-gradient-to-br from-muted to-primary/10 rounded-3xl overflow-hidden border-4 border-primary/20 shadow-[var(--shadow-float)] group cursor-pointer hover:border-primary/40 transition-all"
+                       onClick={handleCameraClick}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-primary/5" />
+                    
+                    <div className="relative h-full flex items-center justify-center p-8">
+                      <div className="text-center space-y-6">
+                        <div className="w-24 h-24 mx-auto bg-primary/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                          <Camera className="w-12 h-12 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-lg font-semibold text-foreground">Ready to Scan</p>
+                          <p className="text-sm text-muted-foreground">Tap anywhere to capture or upload a product photo</p>
+                        </div>
+                        <div className="flex gap-2 justify-center text-xs text-muted-foreground">
+                          <span className="px-3 py-1 bg-card rounded-full">📸 High Quality</span>
+                          <span className="px-3 py-1 bg-card rounded-full">⚡ Instant</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Enhanced corner guides */}
+                    <div className="absolute top-8 left-8 w-12 h-12 border-t-4 border-l-4 border-primary/50 rounded-tl-2xl" />
+                    <div className="absolute top-8 right-8 w-12 h-12 border-t-4 border-r-4 border-primary/50 rounded-tr-2xl" />
+                    <div className="absolute bottom-8 left-8 w-12 h-12 border-b-4 border-l-4 border-primary/50 rounded-bl-2xl" />
+                    <div className="absolute bottom-8 right-8 w-12 h-12 border-b-4 border-r-4 border-primary/50 rounded-br-2xl" />
+                    
+                    {/* Scan line animation */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-scan-line" />
+                    </div>
+                  </div>
+                </div>
+              </div>
                 
                 {/* Hidden file inputs */}
                 <input
@@ -376,7 +406,7 @@ const ScanDemo = () => {
                 />
                 
                 {/* Action Buttons */}
-                <div className="space-y-3 max-w-[380px] mx-auto">
+                <div className="space-y-3 max-w-[380px] mx-auto mt-8">
                   <Button 
                     variant="hero" 
                     size="lg" 
@@ -397,7 +427,7 @@ const ScanDemo = () => {
                   </Button>
                 </div>
                 
-                <p className="text-xs text-center text-muted-foreground">
+                <p className="text-xs text-center text-muted-foreground mt-4">
                   💕 Your snaps stay private—we promise!
                 </p>
               </div>
