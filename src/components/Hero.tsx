@@ -57,7 +57,7 @@ const Hero = () => {
               }}
             >
               <Sparkles className="w-5 h-5 group-hover:animate-wiggle" />
-              Magic
+              Try SnapFox Magic
             </Button>
             <Button 
               variant="outline" 
