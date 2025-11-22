@@ -20,7 +20,89 @@ serve(async (req) => {
 
     console.log("Analyzing product image with location:", location ? "provided" : "not provided");
 
-    // Step 1: Call Lovable AI to identify the product
+    // Step 1: Determine user location and language from coordinates using reverse geocoding
+    let userLocation: { city: string; country: string; language: string } | null = null;
+    let detectedLanguage = "English"; // Default language
+    
+    if (location?.latitude && location?.longitude) {
+      try {
+        // Use OpenStreetMap Nominatim for reverse geocoding with higher zoom for better detail
+        const geocodeResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "PriceHunt/1.0",
+            },
+          },
+        );
+
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          console.log("Geocode response:", JSON.stringify(geocodeData.address));
+
+          // Try multiple address fields to identify city
+          const city =
+            geocodeData.address?.city ||
+            geocodeData.address?.town ||
+            geocodeData.address?.village ||
+            geocodeData.address?.municipality ||
+            geocodeData.address?.county ||
+            geocodeData.address?.state ||
+            geocodeData.address?.region ||
+            "Unknown";
+
+          const country = geocodeData.address?.country || "Unknown";
+          const countryCode = geocodeData.address?.country_code?.toLowerCase() || "us";
+          
+          // Map country codes to languages
+          const languageMap: { [key: string]: string } = {
+            "ro": "Romanian",
+            "us": "English",
+            "gb": "English",
+            "ca": "English",
+            "au": "English",
+            "de": "German",
+            "fr": "French",
+            "es": "Spanish",
+            "it": "Italian",
+            "pt": "Portuguese",
+            "br": "Portuguese",
+            "nl": "Dutch",
+            "pl": "Polish",
+            "ru": "Russian",
+            "jp": "Japanese",
+            "cn": "Chinese",
+            "kr": "Korean",
+            "in": "Hindi",
+            "mx": "Spanish",
+            "ar": "Spanish",
+          };
+          
+          detectedLanguage = languageMap[countryCode] || "English";
+
+          userLocation = {
+            city: city,
+            country: country,
+            language: detectedLanguage,
+          };
+          console.log("Location and language identified:", userLocation);
+        } else {
+          console.error("Geocoding error:", geocodeResponse.status);
+          userLocation = { city: "Unknown", country: "Unknown", language: "English" };
+        }
+      } catch (geocodeError) {
+        console.error("Error reverse geocoding location:", geocodeError);
+        userLocation = { city: "Unknown", country: "Unknown", language: "English" };
+      }
+    } else if (location) {
+      userLocation = {
+        city: location.city || "Unknown",
+        country: location.country || "Unknown",
+        language: "English",
+      };
+    }
+
+    // Step 2: Call Lovable AI to identify the product in the detected language
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -34,11 +116,13 @@ serve(async (req) => {
             role: "system",
             content: `You are a product identification expert. Analyze product images and extract key product information.
 
+IMPORTANT: Respond in ${detectedLanguage}. All text fields (productName, category, description, pros, cons, usageTips, recommendation) must be in ${detectedLanguage}.
+
 Your response must be valid JSON with this exact structure (DO NOT include pricing information):
 {
-  "productName": "Full product name with brand and model",
-  "category": "Product category",
-  "description": "Brief 2-3 sentence description",
+  "productName": "Full product name with brand and model in ${detectedLanguage}",
+  "category": "Product category in ${detectedLanguage}",
+  "description": "Brief 2-3 sentence description in ${detectedLanguage}",
   "rating": 4.2,
   "reviewCount": 1250,
   "reviewBreakdown": {
@@ -46,10 +130,10 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
     "value": 70,
     "durability": 60
   },
-  "pros": ["Pro 1", "Pro 2", "Pro 3"],
-  "cons": ["Con 1", "Con 2"],
-  "usageTips": ["Tip 1", "Tip 2", "Tip 3"],
-  "recommendation": "Personalized recommendation"
+  "pros": ["Pro 1 in ${detectedLanguage}", "Pro 2 in ${detectedLanguage}", "Pro 3 in ${detectedLanguage}"],
+  "cons": ["Con 1 in ${detectedLanguage}", "Con 2 in ${detectedLanguage}"],
+  "usageTips": ["Tip 1 in ${detectedLanguage}", "Tip 2 in ${detectedLanguage}", "Tip 3 in ${detectedLanguage}"],
+  "recommendation": "Personalized recommendation in ${detectedLanguage}"
 }`,
           },
           {
@@ -99,55 +183,6 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
     }
 
     console.log("Product identified:", productData.productName);
-
-    // Step 2: Determine user location from coordinates using reverse geocoding
-    let userLocation: { city: string; country: string } | null = null;
-    if (location?.latitude && location?.longitude) {
-      try {
-        // Use OpenStreetMap Nominatim for reverse geocoding with higher zoom for better detail
-        const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1`,
-          {
-            headers: {
-              "User-Agent": "PriceHunt/1.0",
-            },
-          },
-        );
-
-        if (geocodeResponse.ok) {
-          const geocodeData = await geocodeResponse.json();
-          console.log("Geocode response:", JSON.stringify(geocodeData.address));
-
-          // Try multiple address fields to identify city
-          const city =
-            geocodeData.address?.city ||
-            geocodeData.address?.town ||
-            geocodeData.address?.village ||
-            geocodeData.address?.municipality ||
-            geocodeData.address?.county ||
-            geocodeData.address?.state ||
-            geocodeData.address?.region ||
-            "Unknown";
-
-          userLocation = {
-            city: city,
-            country: geocodeData.address?.country || "Unknown",
-          };
-          console.log("Location identified:", userLocation);
-        } else {
-          console.error("Geocoding error:", geocodeResponse.status);
-          userLocation = { city: "Unknown", country: "Unknown" };
-        }
-      } catch (geocodeError) {
-        console.error("Error reverse geocoding location:", geocodeError);
-        userLocation = { city: "Unknown", country: "Unknown" };
-      }
-    } else if (location) {
-      userLocation = {
-        city: location.city || "Unknown",
-        country: location.country || "Unknown",
-      };
-    }
 
     // Step 3: Get real pricing data using SerpAPI via fetch_geo_prices function
     let pricingData: any = {

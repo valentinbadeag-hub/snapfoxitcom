@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fetch_geo_prices]
 verify_jwt = false
+
+[functions.translate-product]
+verify_jwt = false
