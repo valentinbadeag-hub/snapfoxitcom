@@ -108,7 +108,7 @@ serve(async (req) => {
             uule: uule,
             serpLocation: serpLocation,
           };
-          console.log("Location and language identified:", userLocation);
+          console.log("Location and language identified:", JSON.stringify(userLocation));
         } else {
           console.error("Geocoding error:", geocodeResponse.status);
           userLocation = { 
@@ -231,16 +231,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
     if (productData.productName) {
       try {
-        // Determine country code from geocoded location
-        let countryCode = "us";
-        let city = "";
-
-        if (userLocation) {
-          countryCode = userLocation.countryCode || "us";
-          city = userLocation.city;
-        }
-
-        console.log(`Fetching geo-prices for: ${productData.productName}, country: ${countryCode}, city: ${city}`);
+        console.log(`Fetching geo-prices for: ${productData.productName}, userLocation:`, JSON.stringify(userLocation));
 
         // Call fetch_geo_prices edge function
         const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -254,8 +245,8 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           },
           body: JSON.stringify({
             product_name: productData.productName,
-            country: countryCode,
-            location: userLocation?.serpLocation || city,
+            country: userLocation?.countryCode || "us",
+            location: userLocation?.serpLocation || "",
             uule: userLocation?.uule,
           }),
         });
