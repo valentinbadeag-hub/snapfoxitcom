@@ -13,7 +13,6 @@ serve(async (req) => {
   try {
     const { imageData, location } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const OPEN_NINJA_API_KEY = Deno.env.get("OPEN_NINJA_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -150,9 +149,9 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       };
     }
 
-    // Step 3: Get real pricing data using OpenWeb Ninja API
+    // Step 3: Get real pricing data using SerpAPI via fetch_geo_prices function
     let pricingData: any = {
-      currency: "$",
+      currency: "USD",
       priceRange: "N/A",
       bestPrice: "N/A",
       bestDealer: "Not found",
@@ -161,413 +160,105 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       priceHistory: null,
     };
 
-    if (productData.productName && OPEN_NINJA_API_KEY) {
+    if (productData.productName) {
       try {
-        // First, reverse geocode to get country if we have coordinates
+        // Determine country code from geocoded location
         let countryCode = "us";
+        let city = "";
 
-        if (location?.latitude && location?.longitude) {
-          try {
-            const geocodeResponse = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=10&addressdetails=1`,
-              {
-                headers: {
-                  "User-Agent": "PriceHunt/1.0",
-                },
-              },
-            );
-
-            if (geocodeResponse.ok) {
-              const geocodeData = await geocodeResponse.json();
-              countryCode = geocodeData.address?.country_code || "us";
-              console.log("Country identified for pricing:", countryCode);
-            }
-          } catch (e) {
-            console.error("Error geocoding for pricing:", e);
-          }
+        if (userLocation) {
+          // Map country name to country code (add more mappings as needed)
+          const countryMap: { [key: string]: string } = {
+            "United States": "us",
+            "United Kingdom": "uk",
+            "Canada": "ca",
+            "Australia": "au",
+            "Germany": "de",
+            "France": "fr",
+            "Spain": "es",
+            "Italy": "it",
+            "Japan": "jp",
+            "India": "in",
+            "Brazil": "br",
+            "Mexico": "mx",
+          };
+          
+          countryCode = countryMap[userLocation.country] || "us";
+          city = userLocation.city;
         }
 
-        console.log("Fetching real-time pricing from OpenWeb Ninja for:", productData.productName);
+        console.log(`Fetching geo-prices for: ${productData.productName}, country: ${countryCode}, city: ${city}`);
 
-        // Call OpenWeb Ninja Real-Time Product Search API v2 with location parameters
-        const searchQuery = encodeURIComponent(productData.productName);
-        let apiUrl = `https://api.openwebninja.com/realtime-product-search/search-v2?q=${searchQuery}&country=${countryCode}&limit=10`;
+        // Call fetch_geo_prices edge function
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+        const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-        // Add location parameters if available for nearby deals (within 100km radius)
-        if (location?.latitude && location?.longitude) {
-          apiUrl += `&lat=${location.latitude}&lng=${location.longitude}&zoom=10`;
-          console.log("Searching with location parameters:", { lat: location.latitude, lng: location.longitude });
-        }
-
-        const ninjaResponse = await fetch(apiUrl, {
-          method: "GET",
+        const priceResponse = await fetch(`${SUPABASE_URL}/functions/v1/fetch_geo_prices`, {
+          method: "POST",
           headers: {
-            "x-api-key": OPEN_NINJA_API_KEY,
-            "X-RapidAPI-Host": "real-time-product-search",
+            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            product_name: productData.productName,
+            country: countryCode,
+            city: city,
+          }),
         });
 
-        if (ninjaResponse.ok) {
-          const ninjaData = await ninjaResponse.json();
-          console.log("OpenWeb Ninja response received:", ninjaData.status);
+        if (priceResponse.ok) {
+          const priceData = await priceResponse.json();
+          console.log("Geo-pricing data retrieved:", priceData);
 
-          console.log(apiUrl);
-          console.log(ninjaData.status);
-          console.log(ninjaData.data);
+          // Format the response data
+          const bestPrice = priceData.best_deal?.price || "N/A";
+          const bestDealer = priceData.best_deal?.source || "Online Store";
+          const dealLink = priceData.best_deal?.link;
 
-          if (ninjaData.status === "OK" && ninjaData.data && ninjaData.data.products.length > 0) {
-            // Helper function to calculate distance between two coordinates (Haversine formula)
-            const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-              const R = 6371; // Earth's radius in km
-              const dLat = ((lat2 - lat1) * Math.PI) / 180;
-              const dLon = ((lon2 - lon1) * Math.PI) / 180;
-              const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos((lat1 * Math.PI) / 180) *
-                  Math.cos((lat2 * Math.PI) / 180) *
-                  Math.sin(dLon / 2) *
-                  Math.sin(dLon / 2);
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-              return R * c; // Distance in km
-            };
+          // Map offers to nearby stores format
+          const nearbyStores = priceData.offers?.map((offer: any) => ({
+            name: offer.source,
+            price: offer.price,
+            distance: "Online", // SerpAPI doesn't provide physical distance
+            rating: offer.rating,
+            link: offer.link,
+          })) || [];
 
-            // Helper function to extract numeric price from string
-            const extractPrice = (priceString: string): number => {
-              if (!priceString || priceString === "N/A") return Infinity;
-              const match = priceString.match(/[\d,\.]+/);
-              return match ? parseFloat(match[0].replace(/,/g, "")) : Infinity;
-            };
-
-            // Use AI to verify exact product matches
-            console.log(`Verifying ${ninjaData.data.products.length} products with AI for exact matches`);
-            
-            const verifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
+          pricingData = {
+            currency: priceData.currency || "USD",
+            priceRange:
+              priceData.offers && priceData.offers.length > 1
+                ? `${priceData.offers[0].price} - ${priceData.offers[priceData.offers.length - 1].price}`
+                : bestPrice,
+            bestPrice: bestPrice,
+            bestDealer: bestDealer,
+            dealerDistance: "Online",
+            dealLink: dealLink,
+            averagePrice: priceData.avg_price,
+            nearbyStores: nearbyStores.length > 0 ? nearbyStores : [
+              {
+                name: "View Offers",
+                price: "N/A",
+                distance: "Online",
+                link: dealLink,
               },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [
-                  {
-                    role: "system",
-                    content: `You are a product matching expert. Compare product titles to determine if they are EXACT matches.
-CRITICAL RULES:
-- Only return true for products that are the SAME item (same brand, same model, same specifications)
-- Slight variations in wording are OK (e.g., "Pro" vs "Professional", "XL" position)
-- Different colors/sizes of the same model are acceptable matches
-- Return ONLY a JSON array of boolean values: [true, false, true, ...]
-- Array length must match the number of products provided
+            ],
+            priceHistory: {
+              note: "Live Google Shopping data",
+            },
+          };
 
-Example:
-Search: "Ninja Woodfire Pro Connect XL"
-Products: ["Ninja Woodfire Pro Connect XL Grill", "Weber Genesis", "Ninja Woodfire Pro XL"]
-Response: [true, false, true]`
-                  },
-                  {
-                    role: "user",
-                    content: `Search Product: ${productData.productName}
-
-Product Titles to Verify:
-${ninjaData.data.products.map((p: any, idx: number) => `${idx}. ${p.product_title || 'Unknown'}`).join('\n')}
-
-Return a JSON array of booleans indicating which products are exact matches.`
-                  }
-                ],
-              }),
-            });
-
-            let matchingProducts = [];
-            if (verifyResponse.ok) {
-              const verifyData = await verifyResponse.json();
-              const content = verifyData.choices?.[0]?.message?.content;
-              
-              if (content) {
-                try {
-                  const jsonMatch = content.match(/\[[\w,\s]+\]/);
-                  if (jsonMatch) {
-                    const matches = JSON.parse(jsonMatch[0]);
-                    matchingProducts = ninjaData.data.products.filter((_: any, idx: number) => matches[idx] === true);
-                    console.log(`AI verified ${matchingProducts.length} exact matches from ${ninjaData.data.products.length} products`);
-                  }
-                } catch (e) {
-                  console.error("Error parsing AI verification response:", e);
-                }
-              }
-            }
-
-            // Fallback to basic matching if AI fails
-            if (matchingProducts.length === 0) {
-              console.log("AI verification failed, using strict fallback matching");
-              const normalizeString = (str: string) =>
-                str.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
-              
-              const searchWords = normalizeString(productData.productName)
-                .split(/\s+/)
-                .filter((word: string) => word.length > 2);
-              
-              matchingProducts = ninjaData.data.products.filter((product: any) => {
-                const title = normalizeString(product.product_title || "");
-                // Require at least 85% of words to match for strict matching
-                const matchCount = searchWords.filter((word: string) => title.includes(word)).length;
-                const matchPercentage = searchWords.length > 0 ? matchCount / searchWords.length : 0;
-                return matchPercentage >= 0.85;
-              });
-              
-              console.log(`Fallback matching found ${matchingProducts.length} products`);
-            }
-
-            // Helper function to get country code from coordinates
-            const getCountryCode = async (lat: number, lon: number): Promise<string | null> => {
-              try {
-                const response = await fetch(
-                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=3&addressdetails=1`,
-                  {
-                    headers: {
-                      "User-Agent": "PriceHunt/1.0",
-                    },
-                  }
-                );
-                if (response.ok) {
-                  const data = await response.json();
-                  return data.address?.country_code?.toLowerCase() || null;
-                }
-              } catch (e) {
-                console.error("Error reverse geocoding store:", e);
-              }
-              return null;
-            };
-
-            // Process all matching products
-            const allOffers: any[] = [];
-
-            for (const product of matchingProducts) {
-              // Get main offer
-              if (product.offer) {
-                const offer = {
-                  name: product.offer.store_name || "Online Store",
-                  price: product.offer.price || "N/A",
-                  numericPrice: extractPrice(product.offer.price),
-                  distance: "Online",
-                  distanceKm: 0,
-                  rating: product.offer.store_rating,
-                  link: product.offer.offer_page_url,
-                  lat: product.offer.store_lat,
-                  lon: product.offer.store_lon,
-                  countryCode: null as string | null,
-                };
-
-                // Calculate distance and get country if coordinates available
-                if (location?.latitude && location?.longitude && offer.lat && offer.lon) {
-                  offer.distanceKm = calculateDistance(location.latitude, location.longitude, offer.lat, offer.lon);
-                  offer.distance = `${offer.distanceKm.toFixed(1)} km`;
-                  offer.countryCode = await getCountryCode(offer.lat, offer.lon);
-                }
-
-                allOffers.push(offer);
-              }
-
-              // Get additional offers
-              if (product.offers && Array.isArray(product.offers)) {
-                for (const offer of product.offers) {
-                  const offerData = {
-                    name: offer.store_name || "Online Store",
-                    price: offer.price || "N/A",
-                    numericPrice: extractPrice(offer.price),
-                    distance: "Online",
-                    distanceKm: 0,
-                    rating: offer.store_rating,
-                    link: offer.offer_page_url,
-                    lat: offer.store_lat,
-                    lon: offer.store_lon,
-                    countryCode: null as string | null,
-                  };
-
-                  // Calculate distance and get country if coordinates available
-                  if (location?.latitude && location?.longitude && offerData.lat && offerData.lon) {
-                    offerData.distanceKm = calculateDistance(
-                      location.latitude,
-                      location.longitude,
-                      offerData.lat,
-                      offerData.lon,
-                    );
-                    offerData.distance = `${offerData.distanceKm.toFixed(1)} km`;
-                    offerData.countryCode = await getCountryCode(offerData.lat, offerData.lon);
-                  }
-
-                  allOffers.push(offerData);
-                }
-              }
-            }
-
-            // Filter offers to only include those from the user's country
-            let countryFilteredOffers = allOffers;
-            if (countryCode && countryCode !== "us") {
-              countryFilteredOffers = allOffers.filter((offer) => {
-                // Keep online stores (no coordinates) only if no local stores available
-                if (!offer.lat || !offer.lon || offer.distanceKm === 0) {
-                  return false;
-                }
-                // Keep only stores from the same country
-                return offer.countryCode === countryCode.toLowerCase();
-              });
-              
-              console.log(`Filtered to ${countryFilteredOffers.length} offers from country ${countryCode} (from ${allOffers.length} total)`);
-              
-              // If no local offers found, keep online stores as fallback
-              if (countryFilteredOffers.length === 0) {
-                console.log("No local offers found, keeping online stores as fallback");
-                countryFilteredOffers = allOffers.filter((offer) => offer.distanceKm === 0);
-              }
-            } else {
-              countryFilteredOffers = allOffers;
-            }
-
-            // Use AI to filter and select best deals within 100km radius from country-filtered offers
-            let top5Offers = [];
-            if (location?.latitude && location?.longitude && countryFilteredOffers.length > 0) {
-              try {
-                console.log(`Using AI to select best deals from ${countryFilteredOffers.length} country-filtered offers`);
-                
-                const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash",
-                    messages: [
-                      {
-                        role: "system",
-                        content: `You are a shopping assistant that helps select the best product deals. 
-CRITICAL: ALL offers provided are already filtered to ONLY include stores from the user's country (${userLocation?.country || 'Unknown'}).
-Analyze the offers and select up to 5 best deals that are within 100km radius from the user.
-Consider: distance (prefer closer), price (prefer lower), and store rating (prefer higher).
-Return ONLY a JSON array of indices (0-based) of the selected offers, e.g., [0, 3, 5, 7, 9]`
-                      },
-                      {
-                        role: "user",
-                        content: `User location: ${userLocation?.city || 'Unknown'}, ${userLocation?.country || 'Unknown'}
-
-Available offers (all from ${userLocation?.country || 'Unknown'}):
-${countryFilteredOffers.map((offer, idx) => 
-  `${idx}. ${offer.name} - ${offer.price} - ${offer.distance} (${offer.distanceKm.toFixed(1)}km) - Rating: ${offer.rating || 'N/A'}`
-).join('\n')}
-
-Select up to 5 best offers within 100km radius. Return only the array of indices.`
-                      }
-                    ],
-                  }),
-                });
-
-                if (aiResponse.ok) {
-                  const aiData = await aiResponse.json();
-                  const content = aiData.choices?.[0]?.message?.content;
-                  
-                  if (content) {
-                    // Parse AI response to get selected indices
-                    const jsonMatch = content.match(/\[[\d,\s]+\]/);
-                    if (jsonMatch) {
-                      const selectedIndices = JSON.parse(jsonMatch[0]);
-                      top5Offers = selectedIndices
-                        .filter((idx: number) => idx >= 0 && idx < countryFilteredOffers.length)
-                        .slice(0, 5)
-                        .map((idx: number) => countryFilteredOffers[idx]);
-                      
-                      console.log(`AI selected ${top5Offers.length} offers`);
-                    }
-                  }
-                }
-              } catch (aiError) {
-                console.error("Error using AI for deal selection:", aiError);
-              }
-            }
-
-            // Fallback: if AI selection failed or no location, use traditional filtering
-            if (top5Offers.length === 0) {
-              let filteredOffers = countryFilteredOffers;
-              if (location?.latitude && location?.longitude) {
-                filteredOffers = countryFilteredOffers.filter((offer) => offer.distanceKm > 0 && offer.distanceKm <= 100);
-                console.log(
-                  `Filtered ${filteredOffers.length} offers within 100km from ${countryFilteredOffers.length} country-filtered offers`,
-                );
-              }
-
-              // Sort by price (lowest first)
-              filteredOffers.sort((a, b) => a.numericPrice - b.numericPrice);
-
-              // Take top 5 offers
-              top5Offers = filteredOffers.slice(0, 5);
-            }
-
-            // Get best price and dealer
-            const bestOffer = top5Offers[0];
-            const bestPrice = bestOffer?.price || "N/A";
-            const bestDealer = bestOffer?.name || "Online Store";
-            const bestLink = bestOffer?.link;
-
-            // Clean up offers for response (remove helper fields)
-            const nearbyStores = top5Offers.map((offer: any) => ({
-              name: offer.name,
-              price: offer.price,
-              distance: offer.distance,
-              rating: offer.rating,
-              link: offer.link,
-            }));
-
-            pricingData = {
-              currency: "$",
-              priceRange:
-                top5Offers.length > 1
-                  ? `${top5Offers[0].price} - ${top5Offers[top5Offers.length - 1].price}`
-                  : bestPrice,
-              bestPrice: bestPrice,
-              bestDealer: bestDealer,
-              dealerDistance: bestOffer?.distance || "Online",
-              dealLink:
-                bestLink ||
-                ninjaData.data.products[0]?.product_offers_page_url ||
-                ninjaData.data.products[0]?.product_page_url,
-              nearbyStores:
-                nearbyStores.length > 0
-                  ? nearbyStores
-                  : [
-                      {
-                        name: "View Offers",
-                        price: "N/A",
-                        distance: "Online",
-                        link: ninjaData.data.products[0]?.product_offers_page_url,
-                      },
-                    ],
-              priceHistory: null,
-            };
-
-            // Update product rating and reviews from the first product
-            const firstProduct = ninjaData.data.products[0];
-            if (firstProduct.product_rating) {
-              productData.rating = firstProduct.product_rating;
-            }
-            if (firstProduct.product_num_reviews) {
-              productData.reviewCount = firstProduct.product_num_reviews;
-            }
-
-            console.log(`Real-time pricing data retrieved: ${top5Offers.length} offers, best price: ${bestPrice}`);
-          } else {
-            console.log("No product results found in OpenWeb Ninja response");
-          }
+          console.log(`Geo-pricing complete: ${nearbyStores.length} offers, best price: ${bestPrice}`);
         } else {
-          const errorText = await ninjaResponse.text();
-          console.error("OpenWeb Ninja API error:", ninjaResponse.status, errorText);
+          const errorText = await priceResponse.text();
+          console.error("Geo-pricing API error:", priceResponse.status, errorText);
         }
       } catch (pricingError) {
-        console.error("Error fetching pricing data from OpenWeb Ninja:", pricingError);
+        console.error("Error fetching geo-pricing data:", pricingError);
         // Continue with fallback pricing data
       }
-    } else if (!OPEN_NINJA_API_KEY) {
-      console.log("OPEN_NINJA_API_KEY not configured, skipping real-time pricing");
+    } else {
+      console.log("No product name identified, skipping pricing");
     }
 
     // Step 4: Merge product data with real pricing
