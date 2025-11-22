@@ -33,7 +33,7 @@ const Hero = () => {
             Snap it, love it—
             <br />
             <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              pReview makes shopping sparkle! ✨
+              SnapFox makes shopping sparkle! ✨
             </span>
           </h1>
           
