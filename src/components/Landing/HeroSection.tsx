@@ -9,7 +9,7 @@ const HeroSection = () => {
             <img 
               src={foxHero} 
               alt="Snapfox mascot" 
-              className="w-full h-auto drop-shadow-2xl"
+              className="w-full h-auto drop-shadow-2xl animate-sniff"
             />
           </div>
           
