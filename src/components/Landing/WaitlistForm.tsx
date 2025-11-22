@@ -120,6 +120,18 @@ const WaitlistForm = () => {
           />
         )}
 
+        {/* Desktop hint text */}
+        {!isMobile && !isSubmitted && (
+          <motion.p 
+            className="text-center text-sm text-muted-foreground/60 mb-4"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: isFormVisible ? 0 : 1, y: isFormVisible ? -10 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            Move your cursor to reveal the magic ✨
+          </motion.p>
+        )}
+
         {!isSubmitted ? (
           <motion.div 
             className="relative p-8 rounded-3xl"
