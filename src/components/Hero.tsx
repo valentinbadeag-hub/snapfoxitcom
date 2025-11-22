@@ -13,7 +13,7 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto text-center space-y-8 animate-slide-up">
           {/* Logo Icon */}
           <div 
-            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full shadow-[var(--shadow-glow)] animate-pulse-soft mb-6 cursor-pointer hover:scale-110 transition-transform active:scale-95"
+            className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-primary to-secondary rounded-full shadow-[var(--shadow-glow)] animate-float mb-6 cursor-pointer hover:scale-110 transition-transform active:scale-95"
             onClick={() => {
               // First go back to main scan view if viewing results
               window.dispatchEvent(new Event('backToScan'));
@@ -25,7 +25,7 @@ const Hero = () => {
             }}
             title="Click to scan a product"
           >
-            <Camera className="w-10 h-10 text-white" />
+            <Camera className="w-16 h-16 text-white" />
           </div>
           
           {/* Main Heading */}
