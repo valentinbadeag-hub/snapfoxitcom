@@ -29,8 +29,6 @@ serve(async (req) => {
       engine: 'google_shopping',
       q: product_name,
       gl: country.toLowerCase(),
-      sort_by: '1', // Sort by price low to high
-      min_price: '0',
       no_cache: 'true',
       api_key: apiKey
     });
@@ -39,6 +37,9 @@ serve(async (req) => {
     if (city) {
       params.append('location', city);
     }
+
+    // Sort by price (low to high) to get best deals first
+    params.append('sort_by', '1');
 
     const response = await fetch(`https://serpapi.com/search?${params}`);
     
