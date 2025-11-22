@@ -30,7 +30,7 @@ serve(async (req) => {
     const params = new URLSearchParams({
       engine: "google_shopping",
       q: product_name,
-      //gl: country.toLowerCase(),
+      gl: country.toLowerCase(),
       no_cache: "true",
       api_key: apiKey,
     });
