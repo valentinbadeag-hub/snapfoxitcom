@@ -49,6 +49,35 @@ interface ResultsViewProps {
   onBack: () => void;
 }
 
+// Helper function to generate contextually relevant example questions
+const getExampleQuestion = (category: string): string => {
+  const categoryLower = category.toLowerCase();
+  
+  if (categoryLower.includes('grill') || categoryLower.includes('bbq') || categoryLower.includes('grătar')) {
+    return 'e.g., What temperature is best for grilling steaks?';
+  } else if (categoryLower.includes('wine') || categoryLower.includes('vin') || categoryLower.includes('beverage')) {
+    return 'e.g., What foods pair well with this wine?';
+  } else if (categoryLower.includes('beauty') || categoryLower.includes('skincare') || categoryLower.includes('cosmetic')) {
+    return 'e.g., Is this suitable for sensitive skin?';
+  } else if (categoryLower.includes('electronic') || categoryLower.includes('tech') || categoryLower.includes('device')) {
+    return 'e.g., Is this compatible with my phone?';
+  } else if (categoryLower.includes('food') || categoryLower.includes('snack') || categoryLower.includes('grocery')) {
+    return 'e.g., What are the nutritional benefits?';
+  } else if (categoryLower.includes('clothing') || categoryLower.includes('apparel') || categoryLower.includes('fashion')) {
+    return 'e.g., How does this fit compared to other brands?';
+  } else if (categoryLower.includes('book') || categoryLower.includes('reading')) {
+    return 'e.g., What age group is this book suitable for?';
+  } else if (categoryLower.includes('toy') || categoryLower.includes('game')) {
+    return 'e.g., Is this safe for young children?';
+  } else if (categoryLower.includes('kitchen') || categoryLower.includes('cookware')) {
+    return 'e.g., Can this go in the dishwasher?';
+  } else if (categoryLower.includes('furniture')) {
+    return 'e.g., What are the dimensions of this item?';
+  } else {
+    return 'e.g., How do I use this product?';
+  }
+};
+
 const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
@@ -497,7 +526,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 {/* Question Input */}
                 <div className="flex gap-2">
                   <Input
-                    placeholder="e.g., Is this suitable for sensitive skin?"
+                    placeholder={getExampleQuestion(displayData.category)}
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
