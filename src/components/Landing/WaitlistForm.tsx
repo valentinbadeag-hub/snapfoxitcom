@@ -60,8 +60,8 @@ const WaitlistForm = () => {
         <div className="text-center mb-8 animate-slide-up">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             Join the <span className="relative inline-block">
-              <span className="bg-gradient-to-r from-mint via-blush to-sunshine bg-clip-text text-transparent relative z-10">FOX list</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-mint/20 via-blush/20 to-sunshine/20 w-0 animate-highlight-reveal"></span>
+              <span className="relative z-10">FOX list</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-mint/30 via-blush/30 to-sunshine/30 animate-highlight-reveal origin-left"></span>
             </span>
           </h2>
           <p className="text-lg text-muted-foreground">
