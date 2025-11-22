@@ -55,52 +55,58 @@ const WaitlistForm = () => {
   };
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-cream to-blush/10">
+    <section id="waitlist" className="py-20 px-4 bg-gradient-to-b from-mint/5 to-background">
       <div className="container mx-auto max-w-2xl">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
-            Join the Waitlist
+        <div className="text-center mb-8 animate-slide-up">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            Join the <span className="bg-gradient-to-r from-mint via-blush to-sunshine bg-clip-text text-transparent">Waitlist</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Be the first to know when Snapfox launches. Get early access and exclusive deals.
+            Be the first to know when Snapfox launches. Get early access and exclusive deals! 🦊✨
           </p>
         </div>
 
         {!isSubmitted ? (
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <div className="flex-1 relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12 bg-card border-2 border-mint/30 focus:border-mint text-lg"
+          <div className="bg-card p-8 rounded-3xl shadow-float border-2 border-mint/20 animate-scale-in">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-12 h-14 bg-background border-2 border-mint/30 focus:border-mint text-lg rounded-2xl"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                size="lg"
                 disabled={isLoading}
-              />
-            </div>
-            <Button 
-              type="submit" 
-              size="lg"
-              disabled={isLoading}
-              className="h-12 px-8 bg-mint hover:bg-mint/90 text-white font-semibold shadow-soft hover:shadow-float transition-all duration-300"
-            >
-              {isLoading ? "Joining..." : "Join Waitlist"}
-            </Button>
-          </form>
+                className="w-full h-14 bg-gradient-to-r from-mint to-mint/90 hover:from-mint/90 hover:to-mint text-white font-semibold rounded-2xl shadow-float hover:shadow-glow transition-all duration-300"
+              >
+                {isLoading ? "Joining..." : "Join the Magic ✨"}
+              </Button>
+            </form>
+            
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              🔒 We respect your privacy. Unsubscribe anytime.
+            </p>
+          </div>
         ) : (
-          <div className="flex flex-col items-center space-y-4 animate-fade-in">
-            <div className="w-16 h-16 bg-mint/20 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-mint" />
+          <div className="bg-card p-12 rounded-3xl shadow-float border-2 border-mint/20 animate-scale-in">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-mint/20 to-blush/20 rounded-full flex items-center justify-center animate-scale-in">
+                <CheckCircle2 className="w-12 h-12 text-mint" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground">You're all set! 🎉</h3>
+              <p className="text-lg text-muted-foreground max-w-sm">
+                We'll send you an email when Snapfox launches. Get ready for smarter shopping!
+              </p>
             </div>
-            <p className="text-xl font-semibold text-foreground">You're all set!</p>
-            <p className="text-muted-foreground">We'll send you an email when we launch.</p>
           </div>
         )}
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          We respect your privacy. Unsubscribe at any time.
-        </p>
       </div>
     </section>
   );
