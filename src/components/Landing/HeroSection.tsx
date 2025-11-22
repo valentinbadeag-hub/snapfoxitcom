@@ -1,4 +1,4 @@
-import foxHero from "@/assets/fox-hero.png";
+import foxHero from "@/assets/fox-hero-nobg.png";
 import { Sparkles, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
