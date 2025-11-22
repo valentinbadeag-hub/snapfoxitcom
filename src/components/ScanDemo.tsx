@@ -341,7 +341,7 @@ const ScanDemo = () => {
                     onClick={handleCameraClick}
                   >
                     <Camera className="w-5 h-5 group-hover:animate-wiggle" />
-                    Scan Sample Product
+                    Snap Product
                   </Button>
                   <Button 
                     variant="outline" 
