@@ -49,7 +49,12 @@ const Hero = () => {
               variant="hero" 
               size="lg"
               className="group"
-              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => {
+                document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('triggerCamera'));
+                }, 600);
+              }}
             >
               <Sparkles className="w-5 h-5 group-hover:animate-wiggle" />
               Magic
