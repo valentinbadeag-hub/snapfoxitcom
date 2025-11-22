@@ -258,7 +258,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           // Format the response data
           const bestPrice = priceData.best_deal?.price || "N/A";
           const bestDealer = priceData.best_deal?.source || "Online Store";
-          const dealLink = priceData.best_deal?.link;
+          const dealLink = priceData.best_deal?.product_link || priceData.best_deal?.link;
 
           // Map offers to nearby stores format
           const nearbyStores = priceData.offers?.map((offer: any) => ({
@@ -266,7 +266,7 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
             price: offer.price,
             distance: "Online", // SerpAPI doesn't provide physical distance
             rating: offer.rating,
-            link: offer.link,
+            link: offer.product_link || offer.link,
           })) || [];
 
           pricingData = {
