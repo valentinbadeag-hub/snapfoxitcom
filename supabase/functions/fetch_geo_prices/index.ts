@@ -23,12 +23,14 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Fetching prices for: ${product_name}, country: ${country}, location: ${location}, uule: ${uule ? 'provided' : 'none'}`);
+    console.log(
+      `Fetching prices for: ${product_name}, country: ${country}, location: ${location}, uule: ${uule ? "provided" : "none"}`,
+    );
 
     const params = new URLSearchParams({
       engine: "google_shopping",
       q: product_name,
-      gl: country.toLowerCase(),
+      //gl: country.toLowerCase(),
       no_cache: "true",
       api_key: apiKey,
     });
