@@ -262,7 +262,7 @@ const ScanDemo = () => {
             See the Magic ✨
           </h2>
           <p className="text-lg text-muted-foreground">
-            Try our demo! Upload a product photo and watch pReview work its charm.
+            Try our demo! Upload a product photo and watch SnapFox work its charm.
           </p>
         </div>
         

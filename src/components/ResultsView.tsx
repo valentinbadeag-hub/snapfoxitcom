@@ -463,7 +463,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 <div className="flex items-start gap-2 mb-2">
                   <Heart className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-foreground mb-1">Pro tip from your pReview pal</p>
+                    <p className="text-sm font-semibold text-foreground mb-1">Pro tip from your SnapFox pal</p>
                     <p className="text-sm text-muted-foreground">
                       {displayData.recommendation}
                     </p>
