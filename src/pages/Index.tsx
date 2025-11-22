@@ -1,6 +1,6 @@
-import HeroSection from "@/components/Landing/HeroSection";
-import FeaturesSection from "@/components/Landing/FeaturesSection";
-import AppMockup from "@/components/Landing/AppMockup";
+import Hero from "@/components/Hero";
+import Features from "@/components/Features";
+import ScanDemo from "@/components/ScanDemo";
 import WaitlistForm from "@/components/Landing/WaitlistForm";
 import AppStores from "@/components/Landing/AppStores";
 import Footer from "@/components/Landing/Footer";
@@ -8,9 +8,9 @@ import Footer from "@/components/Landing/Footer";
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <HeroSection />
-      <FeaturesSection />
-      <AppMockup />
+      <Hero />
+      <ScanDemo />
+      <Features />
       <WaitlistForm />
       <AppStores />
       <Footer />
