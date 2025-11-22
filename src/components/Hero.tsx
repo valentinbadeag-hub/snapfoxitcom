@@ -52,7 +52,7 @@ const Hero = () => {
               onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
             >
               <Sparkles className="w-5 h-5 group-hover:animate-wiggle" />
-              Try the magic
+              Magic
             </Button>
             <Button 
               variant="outline" 
