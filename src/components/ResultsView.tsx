@@ -24,6 +24,7 @@ interface ProductData {
   userLocation?: {
     city: string;
     country: string;
+    language?: string;
   };
   reviewBreakdown: {
     quality: number;
@@ -40,6 +41,7 @@ interface ProductData {
     distance: string;
     link?: string;
   }>;
+  isTranslated?: boolean;
 }
 
 interface ResultsViewProps {
@@ -51,7 +53,12 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedData, setTranslatedData] = useState<ProductData | null>(null);
   const { toast } = useToast();
+
+  // Use translated data if available, otherwise use original
+  const displayData = translatedData || productData;
 
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
@@ -73,9 +80,9 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       const { data, error } = await supabase.functions.invoke('product-question', {
         body: {
           question: question.trim(),
-          productName: productData.productName,
-          category: productData.category,
-          country: productData.userLocation?.country || 'US'
+          productName: displayData.productName,
+          category: displayData.category,
+          country: displayData.userLocation?.country || 'US'
         }
       });
 
@@ -99,11 +106,54 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
     }
   };
 
+  const handleTranslate = async () => {
+    // If already translated, revert to original
+    if (translatedData) {
+      setTranslatedData(null);
+      toast({
+        title: "Language switched",
+        description: `Showing in ${productData.userLocation?.language || 'original language'}`,
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-product', {
+        body: {
+          productData: productData
+        }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setTranslatedData(data);
+        toast({
+          title: "Translated to English! 🌍",
+          description: "Product information is now in English",
+        });
+      } else {
+        throw new Error('No translation received');
+      }
+
+    } catch (error) {
+      console.error('Error translating:', error);
+      toast({
+        title: "Translation failed",
+        description: "Could not translate the product information",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   // Calculate discount percentage and trigger confetti for great deals
   useEffect(() => {
-    if (productData.bestPrice !== 'N/A' && productData.averagePrice) {
-      const bestPrice = parseFloat(productData.bestPrice);
-      const avgPrice = parseFloat(productData.averagePrice);
+    if (displayData.bestPrice !== 'N/A' && displayData.averagePrice) {
+      const bestPrice = parseFloat(displayData.bestPrice);
+      const avgPrice = parseFloat(displayData.averagePrice);
       
       if (!isNaN(bestPrice) && !isNaN(avgPrice) && avgPrice > 0) {
         const discountPercentage = ((avgPrice - bestPrice) / avgPrice) * 100;
@@ -120,11 +170,11 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
         }
       }
     }
-  }, [productData]);
+  }, [displayData]);
 
   const handleDealClick = () => {
-    if (productData.dealLink) {
-      window.open(productData.dealLink, '_blank', 'noopener,noreferrer');
+    if (displayData.dealLink) {
+      window.open(displayData.dealLink, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -134,21 +184,41 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
     }
   };
 
-  const isPriceAvailable = productData.bestPrice !== 'N/A' && productData.bestDealer !== 'Not found';
+  const isPriceAvailable = displayData.bestPrice !== 'N/A' && displayData.bestDealer !== 'Not found';
 
   return (
     <section className="py-12 bg-gradient-to-b from-primary/5 to-background min-h-screen">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="max-w-6xl mx-auto mb-8 animate-slide-up">
-          <Button 
-            variant="ghost" 
-            onClick={onBack}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Scan
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Scan
+            </Button>
+            
+            {/* Language Toggle Button */}
+            {productData.userLocation?.language && productData.userLocation.language !== "English" && (
+              <Button
+                variant={translatedData ? "default" : "outline"}
+                size="sm"
+                onClick={handleTranslate}
+                disabled={isTranslating}
+                className="ml-auto"
+              >
+                {isTranslating ? (
+                  <>Translating...</>
+                ) : translatedData ? (
+                  <>🌍 {productData.userLocation.language}</>
+                ) : (
+                  <>🇬🇧 EN</>
+                )}
+              </Button>
+            )}
+          </div>
           
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-[var(--shadow-soft)]">
@@ -156,14 +226,20 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                {productData.productName}
+                {displayData.productName}
               </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{productData.category}</span>
-                {productData.userLocation && (
+                <span>{displayData.category}</span>
+                {displayData.userLocation && (
                   <>
                     <span>•</span>
-                    <span>📍 {productData.userLocation.city}, {productData.userLocation.country}</span>
+                    <span>📍 {displayData.userLocation.city}, {displayData.userLocation.country}</span>
+                    {displayData.userLocation.language && !translatedData && (
+                      <>
+                        <span>•</span>
+                        <span>🌍 {displayData.userLocation.language}</span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -185,10 +261,10 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               {/* Aggregated Score */}
               <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-6 mb-6 text-center">
                 <div className="flex items-center justify-center gap-1 mb-2">
-                  {renderStars(productData.rating)}
+                  {renderStars(displayData.rating)}
                 </div>
-                <div className="text-4xl font-bold text-foreground mb-1">{productData.rating}/5</div>
-                <div className="text-sm text-muted-foreground">from {productData.reviewCount.toLocaleString()} reviews</div>
+                <div className="text-4xl font-bold text-foreground mb-1">{displayData.rating}/5</div>
+                <div className="text-sm text-muted-foreground">from {displayData.reviewCount.toLocaleString()} reviews</div>
               </div>
               
               {/* Review Breakdown */}
@@ -196,29 +272,29 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium w-24">Quality</span>
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${productData.reviewBreakdown.quality}%` }} />
+                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${displayData.reviewBreakdown.quality}%` }} />
                   </div>
-                  <span className="text-sm font-medium text-primary">{productData.reviewBreakdown.quality}%</span>
+                  <span className="text-sm font-medium text-primary">{displayData.reviewBreakdown.quality}%</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium w-24">Durability</span>
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${productData.reviewBreakdown.durability}%` }} />
+                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${displayData.reviewBreakdown.durability}%` }} />
                   </div>
-                  <span className="text-sm font-medium text-primary">{productData.reviewBreakdown.durability}%</span>
+                  <span className="text-sm font-medium text-primary">{displayData.reviewBreakdown.durability}%</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium w-24">Value</span>
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${productData.reviewBreakdown.value}%` }} />
+                    <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${displayData.reviewBreakdown.value}%` }} />
                   </div>
-                  <span className="text-sm font-medium text-primary">{productData.reviewBreakdown.value}%</span>
+                  <span className="text-sm font-medium text-primary">{displayData.reviewBreakdown.value}%</span>
                 </div>
               </div>
               
               {/* Review Snippets */}
               <div className="space-y-3">
-                {productData.pros.slice(0, 2).map((pro, idx) => (
+                {displayData.pros.slice(0, 2).map((pro, idx) => (
                   <div key={`pro-${idx}`} className="bg-accent/20 rounded-xl p-4 border border-accent/30">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-lg">😍</span>
@@ -227,7 +303,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                     <p className="text-sm text-muted-foreground">{pro}</p>
                   </div>
                 ))}
-                {productData.cons.slice(0, 1).map((con, idx) => (
+                {displayData.cons.slice(0, 1).map((con, idx) => (
                   <div key={`con-${idx}`} className="bg-secondary/20 rounded-xl p-4 border border-secondary/30">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-lg">🤔</span>
@@ -258,21 +334,21 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                       Best Deal! 🎉
                     </div>
                     <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-xs text-muted-foreground mr-1">{productData.currency}</span>
-                      <span className="text-4xl font-bold text-foreground">{productData.bestPrice}</span>
+                      <span className="text-xs text-muted-foreground mr-1">{displayData.currency}</span>
+                      <span className="text-4xl font-bold text-foreground">{displayData.bestPrice}</span>
                     </div>
                     <div className="space-y-1 mb-4">
-                      <p className="text-sm text-muted-foreground">at {productData.bestDealer}</p>
-                      {productData.dealerDistance && (
+                      <p className="text-sm text-muted-foreground">at {displayData.bestDealer}</p>
+                      {displayData.dealerDistance && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          📍 {productData.dealerDistance}
+                          📍 {displayData.dealerDistance}
                         </p>
                       )}
-                       {productData.averagePrice && (
+                      {displayData.averagePrice && (
                         <p className="text-xs text-accent font-medium mt-2">
-                          💰 Market avg: {productData.currency}{productData.averagePrice}
-                          {productData.priceHistory?.note && (
-                            <span className="ml-2 text-muted-foreground">({productData.priceHistory.note})</span>
+                          💰 Market avg: {displayData.currency}{displayData.averagePrice}
+                          {displayData.priceHistory?.note && (
+                            <span className="ml-2 text-muted-foreground">({displayData.priceHistory.note})</span>
                           )}
                         </p>
                       )}
@@ -282,9 +358,9 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                       size="sm" 
                       className="w-full" 
                       onClick={handleDealClick}
-                      disabled={!productData.dealLink}
+                      disabled={!displayData.dealLink}
                     >
-                      {productData.dealLink ? (
+                      {displayData.dealLink ? (
                         <>
                           Grab This Deal <ExternalLink className="w-4 h-4 ml-2" />
                         </>
@@ -299,17 +375,17 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                     <p className="text-sm font-medium text-muted-foreground mb-3">Market Price Range</p>
                     <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4">
                       <p className="text-2xl font-bold text-foreground">
-                        {productData.currency}{productData.priceRange}
+                        {displayData.currency}{displayData.priceRange}
                       </p>
                     </div>
                   </div>
                   
                   {/* Nearby Stores */}
-                  {productData.nearbyStores && productData.nearbyStores.length > 0 && (
+                  {displayData.nearbyStores && displayData.nearbyStores.length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-3">Available At</p>
                       <div className="space-y-2">
-                        {productData.nearbyStores.map((store, idx) => (
+                        {displayData.nearbyStores.map((store, idx) => (
                           <div 
                             key={idx} 
                             className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${store.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
@@ -320,7 +396,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                               <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-primary">{productData.currency}{store.price}</p>
+                              <p className="text-sm font-semibold text-primary">{displayData.currency}{store.price}</p>
                               {store.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
                             </div>
                           </div>
@@ -357,7 +433,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-muted-foreground mb-2">What is it?</h3>
                 <p className="text-foreground leading-relaxed">
-                  {productData.description}
+                  {displayData.description}
                 </p>
               </div>
               
@@ -371,7 +447,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               <div className="space-y-4 mb-6">
                 <h3 className="text-sm font-semibold text-muted-foreground">How to use</h3>
                 <div className="space-y-3">
-                  {productData.usageTips.map((tip, idx) => (
+                  {displayData.usageTips.map((tip, idx) => (
                     <div key={idx} className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-sm font-semibold text-primary">{idx + 1}</span>
@@ -389,7 +465,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                   <div>
                     <p className="text-sm font-semibold text-foreground mb-1">Pro tip from your pReview pal</p>
                     <p className="text-sm text-muted-foreground">
-                      {productData.recommendation}
+                      {displayData.recommendation}
                     </p>
                   </div>
                 </div>
