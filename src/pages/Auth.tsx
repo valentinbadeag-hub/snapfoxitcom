@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Sparkles, Mail, Lock, Chrome } from "lucide-react";
+import { Sparkles, Mail, Lock } from "lucide-react";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -132,33 +132,6 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to connect with Google. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5 flex items-center justify-center p-4">
@@ -218,25 +191,6 @@ const Auth = () => {
             {loading ? "Loading..." : isLogin ? "Log In" : "Sign Up"}
           </Button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogleAuth}
-          disabled={loading}
-        >
-          <Chrome className="w-5 h-5 mr-2" />
-          Google
-        </Button>
 
         <div className="mt-6 text-center text-sm">
           <button
