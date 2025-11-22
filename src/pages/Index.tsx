@@ -1,3 +1,4 @@
+import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ScanDemo from "@/components/ScanDemo";
@@ -8,6 +9,7 @@ import Footer from "@/components/Landing/Footer";
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <Header />
       <Hero />
       <ScanDemo />
       <Features />
