@@ -14,7 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      favorites: {
+        Row: {
+          average_price: string | null
+          best_dealer: string | null
+          best_price: string | null
+          category: string | null
+          cons: string[] | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          image_data: string | null
+          price_range: string | null
+          product_name: string
+          pros: string[] | null
+          rating: number | null
+          recommendation: string | null
+          review_count: number | null
+          usage_tips: string[] | null
+          user_id: string
+        }
+        Insert: {
+          average_price?: string | null
+          best_dealer?: string | null
+          best_price?: string | null
+          category?: string | null
+          cons?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_data?: string | null
+          price_range?: string | null
+          product_name: string
+          pros?: string[] | null
+          rating?: number | null
+          recommendation?: string | null
+          review_count?: number | null
+          usage_tips?: string[] | null
+          user_id: string
+        }
+        Update: {
+          average_price?: string | null
+          best_dealer?: string | null
+          best_price?: string | null
+          category?: string | null
+          cons?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_data?: string | null
+          price_range?: string | null
+          product_name?: string
+          pros?: string[] | null
+          rating?: number | null
+          recommendation?: string | null
+          review_count?: number | null
+          usage_tips?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
