@@ -134,7 +134,13 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5 flex flex-col items-center justify-center p-4">
+      <button
+        onClick={() => navigate("/")}
+        className="mb-8 text-3xl font-bold text-foreground hover:scale-105 transition-transform"
+      >
+        🦊 SnapFox
+      </button>
       <Card className="w-full max-w-md p-8 shadow-[var(--shadow-elegant)] border-2 border-primary/20">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mb-4">
