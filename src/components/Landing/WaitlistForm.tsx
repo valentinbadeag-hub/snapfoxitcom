@@ -25,7 +25,7 @@ const WaitlistForm = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Token YOUR_BUTTONDOWN_API_KEY", // User needs to add their API key
+          "Authorization": "Token 889d7498-8e58-4fe8-8e63-e99395b5b741",
         },
         body: JSON.stringify({
           email: email,
