@@ -41,6 +41,7 @@ serve(async (req) => {
     // Sort by price (low to high) to get best deals first
     params.append("sort_by", "1");
 
+    console.log(`https://serpapi.com/search?${params}`);
     const response = await fetch(`https://serpapi.com/search?${params}`);
 
     if (!response.ok) {
