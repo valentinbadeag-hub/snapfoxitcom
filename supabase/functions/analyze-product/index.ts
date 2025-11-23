@@ -225,7 +225,44 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
 
     console.log("Product identified:", productData.productName);
 
-    // Step 3: Get real pricing data using SerpAPI via fetch_geo_prices function
+    // Step 3: Get detailed product information from Open Ninja API
+    let openNinjaData: any = null;
+    if (productData.productName) {
+      try {
+        console.log(`Fetching detailed product data from Open Ninja for: ${productData.productName}`);
+        const OPEN_NINJA_API_KEY = Deno.env.get("OPEN_NINJA_API_KEY");
+        
+        if (!OPEN_NINJA_API_KEY) {
+          console.warn("OPEN_NINJA_API_KEY not configured, skipping Open Ninja enrichment");
+        } else {
+          const openNinjaResponse = await fetch(
+            `https://api.api-ninjas.com/v1/pricesearch?q=${encodeURIComponent(productData.productName)}`,
+            {
+              headers: {
+                "X-Api-Key": OPEN_NINJA_API_KEY,
+              },
+            }
+          );
+
+          if (openNinjaResponse.ok) {
+            const openNinjaResults = await openNinjaResponse.json();
+            if (openNinjaResults && openNinjaResults.length > 0) {
+              openNinjaData = openNinjaResults[0];
+              console.log("Open Ninja data retrieved:", JSON.stringify(openNinjaData).substring(0, 200));
+            } else {
+              console.log("No Open Ninja data found for product");
+            }
+          } else {
+            console.error("Open Ninja API error:", openNinjaResponse.status);
+          }
+        }
+      } catch (openNinjaError) {
+        console.error("Error fetching Open Ninja data:", openNinjaError);
+        // Continue without Open Ninja data
+      }
+    }
+
+    // Step 4: Get real pricing data using SerpAPI via fetch_geo_prices function
     let pricingData: any = {
       currency: "USD",
       priceRange: "N/A",
@@ -313,14 +350,113 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       console.log("No product name identified, skipping pricing");
     }
 
-    // Step 4: Merge product data with real pricing
-    const finalProductData = {
+    // Step 5: Use Gemini AI to merge and validate all data sources
+    let finalProductData = {
       ...productData,
       ...pricingData,
       userLocation,
     };
 
-    console.log("Product analysis complete with real pricing");
+    // If we have data from multiple sources, use Gemini to intelligently merge
+    if (openNinjaData && pricingData.bestPrice !== 'N/A') {
+      try {
+        console.log("Using Gemini AI to merge and validate data from all sources");
+        
+        const mergePrompt = `You are a data validation and merging expert. You have product information from multiple sources:
+
+SOURCE 1 - AI Image Analysis:
+${JSON.stringify(productData, null, 2)}
+
+SOURCE 2 - Open Ninja Product Database:
+${JSON.stringify(openNinjaData, null, 2)}
+
+SOURCE 3 - Real-time Pricing (${userLocation?.country || 'Unknown'}):
+Best Price: ${pricingData.bestPrice} ${pricingData.currency}
+Average Price: ${pricingData.averagePrice}
+Dealer: ${pricingData.bestDealer}
+Available Stores: ${pricingData.nearbyStores?.length || 0}
+
+User Location: ${userLocation?.city}, ${userLocation?.country}
+User Language: ${detectedLanguage}
+
+TASK: Intelligently merge this data, prioritizing:
+1. Most accurate product name and specifications
+2. Real verified data over estimates
+3. Location-specific insights for ${userLocation?.country}
+4. Keep response in ${detectedLanguage}
+
+Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage}):
+{
+  "productName": "Most accurate product name",
+  "category": "Category in ${detectedLanguage}",
+  "description": "Enhanced description in ${detectedLanguage} incorporating all sources",
+  "rating": <merged rating>,
+  "reviewCount": <verified review count if available>,
+  "reviewBreakdown": {
+    "quality": <0-100>,
+    "value": <0-100>,
+    "durability": <0-100>
+  },
+  "pros": ["verified pros in ${detectedLanguage}"],
+  "cons": ["verified cons in ${detectedLanguage}"],
+  "usageTips": ["practical tips in ${detectedLanguage}"],
+  "recommendation": "Personalized recommendation for ${userLocation?.country} in ${detectedLanguage}"
+}`;
+
+        const mergeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: "You are a data validation expert. Merge product information from multiple sources intelligently, prioritizing accuracy and local relevance. Always respond with valid JSON only."
+              },
+              {
+                role: "user",
+                content: mergePrompt
+              }
+            ],
+          }),
+        });
+
+        if (mergeResponse.ok) {
+          const mergeResult = await mergeResponse.json();
+          const mergeContent = mergeResult.choices?.[0]?.message?.content;
+          
+          if (mergeContent) {
+            try {
+              const jsonMatch = mergeContent.match(/```json\n([\s\S]*?)\n```/) || mergeContent.match(/```([\s\S]*?)```/);
+              const jsonString = jsonMatch ? jsonMatch[1] : mergeContent;
+              const mergedData = JSON.parse(jsonString);
+              
+              // Merge the AI-enhanced data with pricing data
+              finalProductData = {
+                ...mergedData,
+                ...pricingData,
+                userLocation,
+              };
+              
+              console.log("Successfully merged data from all sources using Gemini AI");
+            } catch (parseError) {
+              console.error("Failed to parse Gemini merge response:", parseError);
+              // Keep original finalProductData
+            }
+          }
+        } else {
+          console.error("Gemini merge API error:", mergeResponse.status);
+        }
+      } catch (mergeError) {
+        console.error("Error during AI data merging:", mergeError);
+        // Continue with basic merged data
+      }
+    }
+
+    console.log("Product analysis complete with enhanced 3-API pipeline");
 
     return new Response(JSON.stringify(finalProductData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
