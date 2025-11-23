@@ -164,27 +164,20 @@ serve(async (req) => {
           ? validPrices.reduce((sum: number, price: number) => sum + price, 0) / validPrices.length
           : 0;
 
-      // Format offers for response - prioritize direct merchant links
+      // Format offers for response - Google Shopping doesn't provide direct merchant links
+      // The API returns Google Shopping product page URLs which can't be opened cross-origin
       const formattedOffers = offers.map((offer: any) => {
-        // SERP API provides multiple link fields:
-        // - serpapi_product_api: SerpAPI's product details API
-        // - product_link: Direct link to product page (preferred)
-        // - link: Google Shopping result page (fallback)
+        // Create a Google Shopping search URL for the specific product and source
+        const searchQuery = encodeURIComponent(`${offer.title} ${offer.source}`);
+        const googleShoppingSearch = `https://www.google.com/search?tbm=shop&q=${searchQuery}&gl=${countryCode}`;
         
-        let bestLink = offer.product_link || offer.link;
-        
-        // Log link selection for debugging
-        if (offer.product_link) {
-          console.log(`Using product_link for ${offer.source}: ${offer.product_link.substring(0, 80)}...`);
-        } else if (offer.link) {
-          console.log(`Using fallback link for ${offer.source}: ${offer.link.substring(0, 80)}...`);
-        }
+        console.log(`Creating search link for ${offer.source}`);
         
         return {
           title: offer.title,
           price: offer.price || offer.extracted_price,
           source: offer.source,
-          link: bestLink,
+          link: googleShoppingSearch, // Use Google Shopping search instead of product_link
           thumbnail: offer.thumbnail,
           rating: offer.rating,
           reviews: offer.reviews,
@@ -194,8 +187,9 @@ serve(async (req) => {
       console.log(`Best deal found from ${best.source} at ${best.price || best.extracted_price}`);
       console.log(`Returning ${formattedOffers.length} offers for country: ${countryCode}`);
       
-      // Use best available link for the best deal
-      const bestDealLink = best.product_link || best.link;
+      // Create Google Shopping search link for the best deal
+      const bestSearchQuery = encodeURIComponent(`${best.title} ${best.source}`);
+      const bestDealLink = `https://www.google.com/search?tbm=shop&q=${bestSearchQuery}&gl=${countryCode}`;
       
       return new Response(
         JSON.stringify({
