@@ -370,7 +370,7 @@ ${JSON.stringify(productData, null, 2)}
 SOURCE 2 - Open Ninja Product Database:
 ${JSON.stringify(openNinjaData, null, 2)}
 
-SOURCE 3 - Real-time Pricing (${userLocation?.country || 'Unknown'}):
+SOURCE 3 - Real-time LOCAL Pricing (WITHIN 100KM of ${userLocation?.city}, ${userLocation?.country}):
 Best Price: ${pricingData.bestPrice} ${pricingData.currency}
 Average Price: ${pricingData.averagePrice}
 Dealer: ${pricingData.bestDealer}
@@ -379,11 +379,14 @@ Available Stores: ${pricingData.nearbyStores?.length || 0}
 User Location: ${userLocation?.city}, ${userLocation?.country}
 User Language: ${detectedLanguage}
 
+CRITICAL LOCATION FILTER: All pricing offers provided above are STRICTLY within a 100km radius of the user's location. DO NOT recommend or mention any online-only stores or stores from other countries. ONLY recommend LOCAL physical stores within the user's immediate area.
+
 TASK: Intelligently merge this data, prioritizing:
 1. Most accurate product name and specifications
 2. Real verified data over estimates
-3. Location-specific insights for ${userLocation?.country}
-4. Keep response in ${detectedLanguage}
+3. LOCAL availability within 100km radius - this is MANDATORY
+4. Location-specific insights for ${userLocation?.country}
+5. Keep response in ${detectedLanguage}
 
 Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage}):
 {
@@ -400,7 +403,7 @@ Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage})
   "pros": ["verified pros in ${detectedLanguage}"],
   "cons": ["verified cons in ${detectedLanguage}"],
   "usageTips": ["practical tips in ${detectedLanguage}"],
-  "recommendation": "Personalized recommendation for ${userLocation?.country} in ${detectedLanguage}"
+  "recommendation": "Personalized recommendation emphasizing LOCAL availability within 100km in ${detectedLanguage}"
 }`;
 
         const mergeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
