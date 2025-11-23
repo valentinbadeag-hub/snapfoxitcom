@@ -23,14 +23,15 @@ serve(async (req) => {
       });
     }
 
+    const countryCode = country.toLowerCase();
     console.log(
-      `Fetching prices for: ${product_name}, country: ${country}, location: ${location}, uule: ${uule ? "provided" : "none"}`,
+      `Fetching prices for: ${product_name}, country: ${countryCode}, location: ${location}, uule: ${uule ? "provided" : "none"}`,
     );
 
     const params = new URLSearchParams({
       engine: "google_shopping",
       q: product_name,
-      gl: country.toLowerCase(),
+      gl: countryCode,
       no_cache: "true",
       api_key: apiKey,
     });
@@ -96,7 +97,9 @@ serve(async (req) => {
         reviews: offer.reviews,
       }));
 
-      console.log(best);
+      console.log(`Best deal found from ${best.source} at ${best.price || best.extracted_price}`);
+      console.log(`Returning ${formattedOffers.length} offers for country: ${countryCode}`);
+      
       return new Response(
         JSON.stringify({
           best_deal: {
@@ -111,6 +114,7 @@ serve(async (req) => {
           offers: formattedOffers,
           currency: data.search_parameters?.currency || "USD",
           location: data.search_parameters?.location || country,
+          countryCode: countryCode,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
