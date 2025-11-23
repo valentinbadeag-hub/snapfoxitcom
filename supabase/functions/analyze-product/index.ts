@@ -262,6 +262,86 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
           const priceData = await priceResponse.json();
           console.log("Geo-pricing data retrieved:", priceData);
 
+          // Step 3.1: Use Gemini AI to filter offers to only include those from user's country
+          let filteredOffers = priceData.offers || [];
+          
+          if (filteredOffers.length > 0 && userLocation?.countryCode) {
+            try {
+              console.log(`Filtering ${filteredOffers.length} offers for country: ${userLocation.countryCode}`);
+              
+              const filterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash",
+                  messages: [
+                    {
+                      role: "system",
+                      content: `You are a location filtering expert. Your task is to filter shopping offers to only include those from a specific country.
+
+User's country: ${userLocation.country} (country code: ${userLocation.countryCode})
+
+Analyze each offer's source/store name and determine if it's from the user's country or if it's an international/online store from another country.
+
+FILTERING RULES:
+1. KEEP offers from stores clearly based in ${userLocation.country}
+2. KEEP offers from major international retailers with presence in ${userLocation.country} (like Amazon, eBay with country-specific domains)
+3. REMOVE offers from stores clearly based in other countries
+4. REMOVE offers that ship from other countries
+5. For ambiguous cases, prefer to KEEP the offer if the store could reasonably operate in ${userLocation.country}
+
+Return a JSON object with ONLY the array of offer indices to KEEP:
+{
+  "keepIndices": [0, 2, 4]
+}
+
+If all offers should be kept, return all indices. If none should be kept, return an empty array.`
+                    },
+                    {
+                      role: "user",
+                      content: `Filter these offers for ${userLocation.country}:\n\n${JSON.stringify(filteredOffers.map((offer: any, idx: number) => ({
+                        index: idx,
+                        source: offer.source,
+                        title: offer.title
+                      })), null, 2)}`
+                    }
+                  ]
+                }),
+              });
+
+              if (filterResponse.ok) {
+                const filterResult = await filterResponse.json();
+                const filterContent = filterResult.choices?.[0]?.message?.content;
+                
+                if (filterContent) {
+                  try {
+                    const jsonMatch = filterContent.match(/```json\n([\s\S]*?)\n```/) || filterContent.match(/```([\s\S]*?)```/);
+                    const jsonString = jsonMatch ? jsonMatch[1] : filterContent;
+                    const filterData = JSON.parse(jsonString);
+                    
+                    if (filterData.keepIndices && Array.isArray(filterData.keepIndices)) {
+                      const originalCount = filteredOffers.length;
+                      filteredOffers = filterData.keepIndices.map((idx: number) => filteredOffers[idx]).filter(Boolean);
+                      console.log(`AI filtering complete: ${originalCount} → ${filteredOffers.length} offers from ${userLocation.country}`);
+                    }
+                  } catch (parseError) {
+                    console.error("Failed to parse AI filter response, keeping all offers:", parseError);
+                  }
+                }
+              } else {
+                console.error("AI filtering failed, keeping all offers:", filterResponse.status);
+              }
+            } catch (filterError) {
+              console.error("Error during AI filtering, keeping all offers:", filterError);
+            }
+          }
+
+          // Use filtered offers for the rest of the processing
+          priceData.offers = filteredOffers;
+
           // Format the response data
           const bestPrice = priceData.best_deal?.price || "N/A";
           const bestDealer = priceData.best_deal?.source || "Online Store";
