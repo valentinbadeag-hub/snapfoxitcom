@@ -98,19 +98,6 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
-    }
-  }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
 }
 
 @layer utilities {

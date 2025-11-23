@@ -23,7 +23,6 @@ interface ProductData {
   averagePrice?: string;
   dealLink?: string;
   priceHistory?: any;
-  imageData?: string;
   userLocation?: {
     city: string;
     country: string;
@@ -90,8 +89,6 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState(false);
-  const [retryingGlobal, setRetryingGlobal] = useState(false);
-  const [hasNoPrices, setHasNoPrices] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -335,55 +332,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
     }
   };
 
-  const handleRetryGlobal = async () => {
-    setRetryingGlobal(true);
-    try {
-      // Call analyze-product again without location restriction
-      const { data, error } = await supabase.functions.invoke('analyze-product', {
-        body: {
-          imageData: productData.imageData,
-          location: null, // Remove location restriction
-        }
-      });
-
-      if (error) throw error;
-
-      // Reload the page with new data or update state as needed
-      toast({
-        title: "Searching globally! 🌍",
-        description: "Looking for the best deals worldwide...",
-      });
-      
-      // In a real implementation, you would update the productData here
-      // For now, we just show a message
-    } catch (error) {
-      console.error('Error retrying globally:', error);
-      toast({
-        title: "Search failed",
-        description: "Could not search globally. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setRetryingGlobal(false);
-    }
-  };
-
-  const isPriceAvailable = displayData.bestPrice !== 'N/A' && displayData.bestDealer !== 'Not found' && !hasNoPrices;
-
-  // Trigger confetti when best deal appears
-  useEffect(() => {
-    if (isPriceAvailable && displayData.bestPrice) {
-      const timer = setTimeout(() => {
-        confetti({
-          particleCount: 150,
-          spread: 100,
-          origin: { y: 0.5, x: 0.3 },
-          colors: ['#FFD700', '#FFA500', '#FF6347'],
-        });
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isPriceAvailable, displayData.bestPrice]);
+  const isPriceAvailable = displayData.bestPrice !== 'N/A' && displayData.bestDealer !== 'Not found';
 
   return (
     <section className="py-12 bg-gradient-to-b from-primary/5 to-background min-h-screen">
@@ -516,88 +465,103 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             
             {/* Price Hunt */}
             <Card className="p-6 shadow-[var(--shadow-float)] border-2 border-primary/20 bg-gradient-to-br from-card to-accent/5 animate-scale-in" style={{ animationDelay: "0.1s" }}>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="animate-sniff">💰</div>
                 <TrendingDown className="w-5 h-5 text-accent" />
                 <h2 className="text-xl font-semibold text-foreground">Hunt smarter, not harder</h2>
+                {productData.userLocation && (
+                  <span className="ml-auto text-sm text-muted-foreground">📍</span>
+                )}
               </div>
               
               {isPriceAvailable ? (
                 <>
-                  {/* Big Glowing Best Deal Card */}
-                  <div className="bg-gradient-to-br from-accent via-accent/80 to-accent/60 rounded-3xl p-8 mb-6 relative overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.3)] animate-pulse-glow">
-                    <div className="absolute top-4 right-4 bg-secondary text-secondary-foreground px-4 py-2 rounded-full text-sm font-bold animate-bounce">
+                  {/* Best Deal */}
+                  <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 mb-6 relative overflow-hidden">
+                    <div className="absolute top-2 right-2 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-xs font-semibold animate-bounce-gentle">
                       Best Deal! 🎉
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-                    
-                    <div className="relative z-10">
-                      <p className="text-sm font-semibold text-accent-foreground/80 mb-2">Cheapest Price</p>
-                      <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-6xl font-black text-accent-foreground">{displayData.bestPrice}</span>
-                        <span className="text-2xl font-medium text-accent-foreground/70">{displayData.currency}</span>
-                      </div>
-                      <p className="text-lg font-medium text-accent-foreground mb-6">at {displayData.bestDealer}</p>
-                      
-                      <Button 
-                        variant="secondary" 
-                        size="lg" 
-                        className="w-full font-bold shadow-lg hover:shadow-xl transition-all" 
-                        onClick={handleDealClick}
-                      >
-                        Grab This Deal <ExternalLink className="w-5 h-5 ml-2" />
-                      </Button>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-xs text-muted-foreground mr-1">{displayData.currency}</span>
+                      <span className="text-4xl font-bold text-foreground">{displayData.bestPrice}</span>
+                    </div>
+                    <div className="space-y-1 mb-4">
+                      <p className="text-sm text-muted-foreground">at {displayData.bestDealer}</p>
+                      {displayData.dealerDistance && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          📍 {displayData.dealerDistance}
+                        </p>
+                      )}
+                      {displayData.averagePrice && (
+                        <p className="text-xs text-accent font-medium mt-2">
+                          💰 Market avg: {displayData.currency}{displayData.averagePrice}
+                          {displayData.priceHistory?.note && (
+                            <span className="ml-2 text-muted-foreground">({displayData.priceHistory.note})</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <Button 
+                      variant="hero" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={handleDealClick}
+                      disabled={!displayData.dealLink}
+                    >
+                      {displayData.dealLink ? (
+                        <>
+                          Grab This Deal <ExternalLink className="w-4 h-4 ml-2" />
+                        </>
+                      ) : (
+                        'View Details'
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Price Range */}
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-3">Market Price Range</p>
+                    <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4">
+                      <p className="text-2xl font-bold text-foreground">
+                        {displayData.currency}{displayData.priceRange}
+                      </p>
                     </div>
                   </div>
                   
-                  {/* Top 3 Deals List */}
+                  {/* Nearby Stores */}
                   {displayData.nearbyStores && displayData.nearbyStores.length > 0 && (
-                    <div className="space-y-3 mb-4">
-                      {displayData.nearbyStores.slice(0, 3).map((store, idx) => (
-                        <div 
-                          key={idx} 
-                          className="bg-card rounded-xl p-4 border border-primary/20 flex items-center justify-between cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => handleStoreClick(store.link)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                              {idx + 1}
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Available At</p>
+                      <div className="space-y-2">
+                        {displayData.nearbyStores.map((store, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${store.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
+                            onClick={() => handleStoreClick(store.link)}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{store.name}</p>
+                              <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
                             </div>
-                            <p className="text-sm font-semibold text-foreground">{store.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-primary">{displayData.currency}{store.price}</p>
+                              {store.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-lg font-bold text-accent">{store.price}</p>
-                            <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Market Average */}
-                  {displayData.averagePrice && (
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">
-                        Market average: <span className="font-semibold text-foreground">{displayData.currency}{displayData.averagePrice}</span>
-                      </p>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="bg-gradient-to-r from-orange-500/20 to-orange-400/10 rounded-2xl p-6 text-center border-2 border-orange-500/30">
-                  <div className="text-5xl mb-4 animate-bounce-gentle">🦊🔍</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No local gems nearby, try global view?</h3>
+                <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 text-center">
+                  <div className="text-4xl mb-3 animate-bounce-gentle">🌍</div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No local gems—global view? 🌍</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We couldn't find deals in your area. Let's search worldwide!
+                    We couldn't find pricing in your area. Try expanding your search globally!
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleRetryGlobal}
-                    disabled={retryingGlobal}
-                    className="border-orange-500/50 hover:bg-orange-500/10"
-                  >
-                    {retryingGlobal ? 'Searching...' : 'Search Globally 🌍'}
+                  <Button variant="outline" size="sm">
+                    Search Globally →
                   </Button>
                 </div>
               )}
