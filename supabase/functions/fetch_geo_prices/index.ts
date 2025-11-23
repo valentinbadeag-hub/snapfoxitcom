@@ -63,10 +63,89 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("SerpAPI response:", JSON.stringify(data).substring(0, 500));
+    console.log("SerpAPI full response for debugging:", JSON.stringify(data, null, 2));
+    
+    // Helper function to extract country code from offer data
+    const getOfferCountryCode = (offer: any): string | null => {
+      // Check link/product_link for country indicators
+      const url = offer.link || offer.product_link || "";
+      
+      // Extract domain from URL
+      try {
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname.toLowerCase();
+        
+        // Extract TLD (top-level domain)
+        const tldMatch = domain.match(/\.([a-z]{2})$/);
+        if (tldMatch) {
+          const tld = tldMatch[1];
+          // Map common TLDs to country codes
+          const tldToCountry: { [key: string]: string } = {
+            'ro': 'ro', 'de': 'de', 'fr': 'fr', 'uk': 'gb', 'us': 'us',
+            'ca': 'ca', 'au': 'au', 'it': 'it', 'es': 'es', 'nl': 'nl',
+            'pl': 'pl', 'br': 'br', 'mx': 'mx', 'jp': 'jp', 'cn': 'cn'
+          };
+          if (tldToCountry[tld]) {
+            return tldToCountry[tld];
+          }
+        }
+        
+        // Check for country indicators in domain name
+        if (domain.includes('.ro') || domain.includes('romania')) return 'ro';
+        if (domain.includes('.de') || domain.includes('germany')) return 'de';
+        if (domain.includes('.fr') || domain.includes('france')) return 'fr';
+        
+        // For global marketplaces, check source name
+        if (offer.source) {
+          const source = offer.source.toLowerCase();
+          if (source.includes('romania') || source.includes('român')) return 'ro';
+          if (source.includes('germany') || source.includes('deutschland')) return 'de';
+          if (source.includes('france')) return 'fr';
+        }
+      } catch (e) {
+        console.log(`Could not parse URL for offer: ${offer.source}`);
+      }
+      
+      return null; // Unknown country
+    };
 
     if (data.shopping_results && data.shopping_results.length > 0) {
-      const offers = data.shopping_results.slice(0, 5); // Top 5 deals
+      console.log(`Received ${data.shopping_results.length} offers from SERP API`);
+      
+      // Filter offers by country code before processing
+      const filteredByCountry = data.shopping_results.filter((offer: any) => {
+        const offerCountry = getOfferCountryCode(offer);
+        console.log(`Offer: ${offer.source} - Detected country: ${offerCountry || 'unknown'} - User country: ${countryCode}`);
+        
+        // Keep offer if:
+        // 1. Country matches user's country
+        // 2. Country is unknown (might be local but couldn't detect)
+        const shouldKeep = offerCountry === countryCode || offerCountry === null;
+        
+        if (!shouldKeep) {
+          console.log(`Filtering out ${offer.source} - country mismatch`);
+        }
+        
+        return shouldKeep;
+      });
+      
+      console.log(`After country filtering: ${filteredByCountry.length} offers remain for country: ${countryCode}`);
+      
+      if (filteredByCountry.length === 0) {
+        console.log("No offers match user's country after filtering");
+        return new Response(
+          JSON.stringify({ 
+            error: "No local deals found", 
+            message: `No offers available in your country (${countryCode.toUpperCase()})` 
+          }), 
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      const offers = filteredByCountry.slice(0, 5); // Top 5 deals after filtering
 
       // Find best deal (lowest price)
       const best = offers.reduce((min: any, item: any) => {
