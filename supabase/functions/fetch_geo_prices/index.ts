@@ -145,7 +145,21 @@ serve(async (req) => {
         );
       }
       
-      const offers = filteredByCountry.slice(0, 5); // Top 5 deals after filtering
+      // Deduplicate by merchant/source - keep only first occurrence of each merchant
+      const seenMerchants = new Set<string>();
+      const uniqueOffers = filteredByCountry.filter((offer: any) => {
+        const merchantName = offer.source?.toLowerCase() || "";
+        if (seenMerchants.has(merchantName)) {
+          console.log(`Skipping duplicate merchant: ${offer.source}`);
+          return false;
+        }
+        seenMerchants.add(merchantName);
+        return true;
+      });
+      
+      console.log(`After deduplication: ${uniqueOffers.length} unique merchants`);
+      
+      const offers = uniqueOffers.slice(0, 3); // Top 3 unique merchant deals
 
       // Find best deal (lowest price)
       const best = offers.reduce((min: any, item: any) => {
