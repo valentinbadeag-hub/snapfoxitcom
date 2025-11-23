@@ -164,20 +164,38 @@ serve(async (req) => {
           ? validPrices.reduce((sum: number, price: number) => sum + price, 0) / validPrices.length
           : 0;
 
-      // Format offers for response
-      const formattedOffers = offers.map((offer: any) => ({
-        title: offer.title,
-        price: offer.price || offer.extracted_price,
-        source: offer.source,
-        link: offer.link,
-        product_link: offer.product_link,
-        thumbnail: offer.thumbnail,
-        rating: offer.rating,
-        reviews: offer.reviews,
-      }));
+      // Format offers for response - prioritize direct merchant links
+      const formattedOffers = offers.map((offer: any) => {
+        // SERP API provides multiple link fields:
+        // - serpapi_product_api: SerpAPI's product details API
+        // - product_link: Direct link to product page (preferred)
+        // - link: Google Shopping result page (fallback)
+        
+        let bestLink = offer.product_link || offer.link;
+        
+        // Log link selection for debugging
+        if (offer.product_link) {
+          console.log(`Using product_link for ${offer.source}: ${offer.product_link.substring(0, 80)}...`);
+        } else if (offer.link) {
+          console.log(`Using fallback link for ${offer.source}: ${offer.link.substring(0, 80)}...`);
+        }
+        
+        return {
+          title: offer.title,
+          price: offer.price || offer.extracted_price,
+          source: offer.source,
+          link: bestLink,
+          thumbnail: offer.thumbnail,
+          rating: offer.rating,
+          reviews: offer.reviews,
+        };
+      });
 
       console.log(`Best deal found from ${best.source} at ${best.price || best.extracted_price}`);
       console.log(`Returning ${formattedOffers.length} offers for country: ${countryCode}`);
+      
+      // Use best available link for the best deal
+      const bestDealLink = best.product_link || best.link;
       
       return new Response(
         JSON.stringify({
@@ -185,8 +203,7 @@ serve(async (req) => {
             title: best.title,
             price: best.price || best.extracted_price,
             source: best.source,
-            link: best.link,
-            product_link: best.product_link,
+            link: bestDealLink,
             thumbnail: best.thumbnail,
           },
           avg_price: avg_price.toFixed(2),
