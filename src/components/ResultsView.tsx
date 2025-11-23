@@ -463,10 +463,10 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               </div>
             </Card>
             
-            {/* Price Hunt */}
+            {/* Price Hunt - Completely Rewritten */}
             <Card className="p-6 shadow-[var(--shadow-float)] border-2 border-primary/20 bg-gradient-to-br from-card to-accent/5 animate-scale-in" style={{ animationDelay: "0.1s" }}>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="animate-sniff">💰</div>
+              <div className="flex items-center gap-2 mb-6">
+                <span className="text-2xl">🦊</span>
                 <TrendingDown className="w-5 h-5 text-accent" />
                 <h2 className="text-xl font-semibold text-foreground">Hunt smarter, not harder</h2>
                 {productData.userLocation && (
@@ -476,93 +476,92 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               
               {isPriceAvailable ? (
                 <>
-                  {/* Best Deal */}
-                  <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 mb-6 relative overflow-hidden">
-                    <div className="absolute top-2 right-2 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-xs font-semibold animate-bounce-gentle">
-                      Best Deal! 🎉
+                  {/* Big Glowing Best Deal Card with Confetti */}
+                  <div className="bg-gradient-to-br from-accent/30 via-accent/20 to-primary/20 rounded-3xl p-6 mb-6 relative overflow-hidden border-2 border-accent/40 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse-glow">
+                    <div className="absolute top-3 right-3 bg-gradient-to-r from-secondary to-accent text-secondary-foreground px-4 py-1.5 rounded-full text-sm font-bold shadow-lg animate-bounce">
+                      🎉 Best Deal!
                     </div>
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-xs text-muted-foreground mr-1">{displayData.currency}</span>
-                      <span className="text-4xl font-bold text-foreground">{displayData.bestPrice}</span>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-5xl font-black text-foreground tracking-tight">
+                          {displayData.currency}{displayData.bestPrice}
+                        </span>
+                      </div>
+                      <p className="text-base text-muted-foreground font-medium">
+                        at <span className="text-foreground font-semibold">{displayData.bestDealer}</span>
+                      </p>
                     </div>
-                    <div className="space-y-1 mb-4">
-                      <p className="text-sm text-muted-foreground">at {displayData.bestDealer}</p>
-                      {displayData.dealerDistance && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          📍 {displayData.dealerDistance}
-                        </p>
-                      )}
-                      {displayData.averagePrice && (
-                        <p className="text-xs text-accent font-medium mt-2">
-                          💰 Market avg: {displayData.currency}{displayData.averagePrice}
-                          {displayData.priceHistory?.note && (
-                            <span className="ml-2 text-muted-foreground">({displayData.priceHistory.note})</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
+                    
                     <Button 
-                      variant="hero" 
-                      size="sm" 
-                      className="w-full" 
+                      variant="default" 
+                      size="lg" 
+                      className="w-full bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90 text-foreground font-bold shadow-lg rounded-2xl" 
                       onClick={handleDealClick}
-                      disabled={!displayData.dealLink}
                     >
-                      {displayData.dealLink ? (
-                        <>
-                          Grab This Deal <ExternalLink className="w-4 h-4 ml-2" />
-                        </>
-                      ) : (
-                        'View Details'
-                      )}
+                      Grab This Deal 🎯 <ExternalLink className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                   
-                  {/* Price Range */}
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-3">Market Price Range</p>
-                    <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4">
-                      <p className="text-2xl font-bold text-foreground">
-                        {displayData.currency}{displayData.priceRange}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Nearby Stores */}
+                  {/* Three Small Cards/List Items for Top 3 Deals */}
                   {displayData.nearbyStores && displayData.nearbyStores.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-3">Available At</p>
-                      <div className="space-y-2">
-                        {displayData.nearbyStores.map((store, idx) => (
-                          <div 
-                            key={idx} 
-                            className={`bg-card rounded-xl p-3 border border-primary/10 flex items-center justify-between ${store.link ? 'cursor-pointer hover:border-primary/30 transition-colors' : ''}`}
-                            onClick={() => handleStoreClick(store.link)}
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{store.name}</p>
-                              <p className="text-xs text-muted-foreground">📍 {store.distance}</p>
+                    <div className="space-y-3 mb-6">
+                      {displayData.nearbyStores.slice(0, 3).map((store, idx) => (
+                        <div 
+                          key={idx} 
+                          className="bg-gradient-to-r from-card to-primary/5 rounded-2xl p-4 border-2 border-primary/10 hover:border-primary/30 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-lg"
+                          onClick={() => handleStoreClick(store.link)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-foreground">{store.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {idx === 0 && "🥇 "}{idx === 1 && "🥈 "}{idx === 2 && "🥉 "}
+                                Click to view
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-primary">{displayData.currency}{store.price}</p>
-                              {store.link && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                            <div className="flex items-center gap-3">
+                              <p className="text-xl font-black text-primary">
+                                {displayData.currency}{store.price}
+                              </p>
+                              <ExternalLink className="w-4 h-4 text-muted-foreground" />
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Small Line "Market average" */}
+                  {displayData.averagePrice && (
+                    <div className="text-center py-3 border-t border-primary/10">
+                      <p className="text-sm text-muted-foreground">
+                        Market average: <span className="font-bold text-foreground">{displayData.currency}{displayData.averagePrice}</span>
+                      </p>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl p-6 text-center">
-                  <div className="text-4xl mb-3 animate-bounce-gentle">🌍</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No local gems—global view? 🌍</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    We couldn't find pricing in your area. Try expanding your search globally!
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Search Globally →
-                  </Button>
+                <div className="text-center py-8">
+                  {/* Friendly Orange Card for No Results */}
+                  <div className="bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/20 dark:to-orange-800/10 rounded-3xl p-8 border-2 border-orange-200 dark:border-orange-800/30">
+                    <div className="text-6xl mb-4">🦊</div>
+                    <p className="text-xl font-bold text-foreground mb-2">No local gems nearby</p>
+                    <p className="text-sm text-muted-foreground mb-6">Try searching without location filters?</p>
+                    <Button 
+                      variant="outline" 
+                      size="lg"
+                      className="rounded-2xl border-2 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                      onClick={() => {
+                        toast({
+                          title: "Global search coming soon! 🌍",
+                          description: "This feature will search worldwide for the best deals",
+                        });
+                      }}
+                    >
+                      🌍 Try Global View
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>
