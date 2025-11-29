@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ScanDemo from "@/components/ScanDemo";
+import ScanHistory from "@/components/ScanHistory";
 import WaitlistForm from "@/components/Landing/WaitlistForm";
 import AppStores from "@/components/Landing/AppStores";
 import Footer from "@/components/Landing/Footer";
@@ -12,6 +13,7 @@ const Index = () => {
       <Header />
       <Hero />
       <ScanDemo />
+      <ScanHistory />
       <Features />
       <WaitlistForm />
       <AppStores />
