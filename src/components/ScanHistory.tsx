@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, MapPin, DollarSign, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface ProductData {
   productName: string;
@@ -42,6 +44,7 @@ interface ScanHistoryItem {
 
 const ScanHistory = () => {
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const loadHistory = () => {
@@ -100,70 +103,98 @@ const ScanHistory = () => {
   };
 
   return (
-    <section id="recent-scans" className="py-12 bg-gradient-to-b from-background to-primary/5">
+    <section id="recent-scans" className="py-8 bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-4 mb-10">
-            <h3 className="text-3xl font-bold text-foreground">
-              Recent Scans ✨
-            </h3>
-            <p className="text-muted-foreground">
-              Your latest product discoveries
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {history.map((item) => {
-              const { productData } = item;
-              return (
-                <Card 
-                  key={item.id}
-                  className="p-4 shadow-[var(--shadow-soft)] border border-primary/10 bg-card hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer"
-                  onClick={() => handleItemClick(item)}
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            {/* Minimized State - Clean Button */}
+            <div className="flex items-center justify-center mb-6">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group rounded-full h-12 px-6 hover:bg-primary/10 transition-all duration-300"
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-foreground truncate">
-                          {productData.productName}
-                        </h4>
-                        <Badge variant="secondary" className="text-xs mt-1">
-                          {productData.category}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-primary">
-                        <span>⭐</span>
-                        <span className="font-medium">{productData.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />
-                        <span className="font-medium text-primary">
-                          {productData.bestPrice} {productData.currency}
-                        </span>
-                      </div>
-                      
-                      {productData.userLocation && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span className="truncate">
-                            {productData.userLocation.city}, {productData.userLocation.country}
-                          </span>
+                  <History className="w-4 h-4 mr-2 group-hover:text-primary transition-colors" />
+                  <span className="font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    Recent Scans
+                  </span>
+                  <Badge variant="secondary" className="ml-2 rounded-full">
+                    {history.length}
+                  </Badge>
+                  {isOpen ? (
+                    <ChevronUp className="w-4 h-4 ml-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+
+            {/* Expanded Content */}
+            <CollapsibleContent className="space-y-6 animate-accordion-down">
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold text-foreground">
+                  Your Latest Discoveries ✨
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Tap any scan to view details again
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+                {history.map((item) => {
+                  const { productData } = item;
+                  return (
+                    <Card 
+                      key={item.id}
+                      className="p-4 shadow-[var(--shadow-soft)] border border-primary/10 bg-card hover:shadow-[var(--shadow-float)] transition-all hover:-translate-y-1 cursor-pointer group"
+                      onClick={() => handleItemClick(item)}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                              {productData.productName}
+                            </h4>
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {productData.category}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-primary">
+                            <span>⭐</span>
+                            <span className="font-medium">{productData.rating.toFixed(1)}</span>
+                          </div>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>{formatTimestamp(item.timestamp)}</span>
+                        
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4" />
+                            <span className="font-medium text-primary">
+                              {productData.bestPrice} {productData.currency}
+                            </span>
+                          </div>
+                          
+                          {productData.userLocation && (
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              <span className="truncate">
+                                {productData.userLocation.city}, {productData.userLocation.country}
+                              </span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTimestamp(item.timestamp)}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
     </section>
