@@ -89,6 +89,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [isRetryingOnline, setIsRetryingOnline] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -294,6 +295,75 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       });
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleRetryOnline = async () => {
+    setIsRetryingOnline(true);
+    toast({
+      title: "Searching online... 🌍",
+      description: "Looking for online offers in your country",
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch_geo_prices', {
+        body: {
+          product_name: displayData.productName,
+          country: productData.userLocation?.country || 'ro',
+          location: '', // Empty location for online search
+          uule: '' // Empty uule for online search
+        }
+      });
+
+      if (error) throw error;
+
+      if (data && data.best_deal) {
+        // Update product data with new pricing info
+        const updatedData = {
+          ...productData,
+          bestPrice: data.best_deal.numericPrice.toString(),
+          bestDealer: data.best_deal.source,
+          dealLink: data.best_deal.link,
+          currency: data.currency,
+          averagePrice: data.avg_price,
+          nearbyStores: data.offers.map((offer: any) => ({
+            name: offer.source,
+            price: offer.numericPrice.toString(),
+            distance: '',
+            link: offer.link
+          }))
+        };
+
+        // If we're showing translated data, update both
+        if (translatedData) {
+          setTranslatedData(updatedData);
+        } else {
+          // Update the display by forcing a re-render with new data
+          Object.assign(productData, updatedData);
+        }
+
+        toast({
+          title: "Online deals found! 🎉",
+          description: `Found ${data.offers.length} online offers`,
+        });
+
+        // Trigger confetti
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+    } catch (error) {
+      console.error('Error fetching online prices:', error);
+      toast({
+        title: "Search failed",
+        description: "Could not find online offers. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRetryingOnline(false);
     }
   };
 
@@ -552,14 +622,10 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                       variant="outline" 
                       size="lg"
                       className="rounded-2xl border-2 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                      onClick={() => {
-                        toast({
-                          title: "Global search coming soon! 🌍",
-                          description: "This feature will search worldwide for the best deals",
-                        });
-                      }}
+                      onClick={handleRetryOnline}
+                      disabled={isRetryingOnline}
                     >
-                      🌍 Try Global View
+                      {isRetryingOnline ? "Searching..." : "🌍 Go Online"}
                     </Button>
                   </div>
                 </div>
