@@ -26,7 +26,10 @@ interface ProductData {
   userLocation?: {
     city: string;
     country: string;
+    countryCode?: string;
     language?: string;
+    uule?: string;
+    serpLocation?: string;
   };
   reviewBreakdown: {
     quality: number;
@@ -309,7 +312,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       const { data, error } = await supabase.functions.invoke('fetch_geo_prices', {
         body: {
           product_name: displayData.productName,
-          country: productData.userLocation?.country || 'ro',
+          country: productData.userLocation?.countryCode || 'ro',
           location: '', // Empty location for online search
           uule: '' // Empty uule for online search
         }
