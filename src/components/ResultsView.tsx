@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, ChevronUp, ChevronDown, Brain, AlertTriangle, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -49,6 +49,21 @@ interface ProductData {
   isTranslated?: boolean;
 }
 
+interface IntentAnalysis {
+  intent: string;
+  intentLabel: string;
+  safetyData: {
+    type: string;
+    items: string[];
+    highlight: string;
+  };
+  recommendations: Array<{
+    title: string;
+    description: string;
+    icon: string;
+  }>;
+}
+
 interface ResultsViewProps {
   productData: ProductData;
   onBack: () => void;
@@ -94,6 +109,9 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState(false);
   const [isRetryingOnline, setIsRetryingOnline] = useState(false);
+  const [isIntentLoading, setIsIntentLoading] = useState(false);
+  const [intentData, setIntentData] = useState<IntentAnalysis | null>(null);
+  const [isIntentMinimized, setIsIntentMinimized] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -119,6 +137,36 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       checkIfFavorite();
     }
   }, [user, displayData.productName]);
+
+  // Fetch intent analysis when product data is available
+  useEffect(() => {
+    const fetchIntentAnalysis = async () => {
+      setIsIntentLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-product-intent', {
+          body: {
+            productName: displayData.productName,
+            category: displayData.category,
+            description: displayData.description,
+            rating: displayData.rating,
+          }
+        });
+
+        if (error) throw error;
+
+        if (data) {
+          setIntentData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching intent analysis:', error);
+        // Silently fail - this is a nice-to-have feature
+      } finally {
+        setIsIntentLoading(false);
+      }
+    };
+
+    fetchIntentAnalysis();
+  }, [displayData.productName, displayData.category, displayData.description, displayData.rating]);
 
   const checkIfFavorite = async () => {
     if (!user) return;
@@ -688,6 +736,88 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 </div>
               </div>
             </Card>
+            
+            {/* I've Read Your Mind - Intent Analysis */}
+            {(isIntentLoading || intentData) && (
+              <Card className="p-6 shadow-[var(--shadow-float)] border-2 border-secondary/30 bg-gradient-to-br from-card to-secondary/5 animate-scale-in overflow-hidden" style={{ animationDelay: "0.2s" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-secondary" />
+                    <h2 className="text-xl font-semibold text-foreground">I've read your mind!</h2>
+                  </div>
+                  {intentData && (
+                    <Button
+                      onClick={() => setIsIntentMinimized(!isIntentMinimized)}
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full hover:bg-secondary/10"
+                    >
+                      {isIntentMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                  )}
+                </div>
+                
+                {isIntentLoading ? (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 bg-secondary rounded-full animate-bounce-gentle" />
+                      <div className="w-3 h-3 bg-secondary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
+                      <div className="w-3 h-3 bg-secondary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Reading your mind...</p>
+                  </div>
+                ) : intentData && !isIntentMinimized ? (
+                  <div className="space-y-4">
+                    {/* Intent Label */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-secondary" />
+                      <p className="text-sm font-semibold text-secondary">{intentData.intentLabel}</p>
+                    </div>
+
+                    {/* Safety Box */}
+                    <div className="bg-gradient-to-r from-accent/20 to-secondary/20 rounded-xl p-4 border-2 border-accent/30">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-foreground mb-2">
+                            {intentData.safetyData.highlight}
+                          </p>
+                          <div className="space-y-1">
+                            {intentData.safetyData.items.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-2">
+                                <span className="text-accent text-sm">•</span>
+                                <p className="text-sm text-muted-foreground">{item}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div className="space-y-3">
+                      {intentData.recommendations.map((rec, idx) => (
+                        <div key={idx} className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-secondary/20">
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">{rec.icon}</span>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-foreground mb-1">{rec.title}</p>
+                              <p className="text-sm text-muted-foreground">{rec.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : intentData && isIntentMinimized ? (
+                  <div className="text-center py-2">
+                    <p className="text-sm text-muted-foreground italic">
+                      Click to reveal your personalized insights ✨
+                    </p>
+                  </div>
+                ) : null}
+              </Card>
+            )}
             
             {/* Action Buttons */}
             <Card className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-card">
