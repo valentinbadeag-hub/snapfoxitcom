@@ -151,8 +151,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro",
-        thinking_level: "HIGH",
+        model: "google/gemini-3-pro-preview",
         messages: [
           {
             role: "system",
@@ -414,8 +413,7 @@ Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage})
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-pro",
-            thinking_level: "HIGH",
+            model: "google/gemini-3-pro-preview",
             messages: [
               {
                 role: "system",
