@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { productName, category, description, rating } = await req.json();
+    const { productName, category, description, rating, language = 'English' } = await req.json();
     
     console.log(`Analyzing intent for product: ${productName}, category: ${category}`);
 
@@ -71,6 +71,8 @@ Product: ${productName}
 Category: ${category}
 Description: ${description}
 Rating: ${rating || 'N/A'}
+
+IMPORTANT: Respond in ${language} language. All text in the JSON output must be in ${language}.
 
 Follow the Chain-of-Thought process and return only valid JSON.`;
 
