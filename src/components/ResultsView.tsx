@@ -149,6 +149,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
             category: displayData.category,
             description: displayData.description,
             rating: displayData.rating,
+            language: displayData.userLocation?.language || 'English',
           }
         });
 
