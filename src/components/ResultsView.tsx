@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, ChevronUp, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -88,6 +88,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [isAsking, setIsAsking] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isAiMinimized, setIsAiMinimized] = useState(true);
   const [translatedData, setTranslatedData] = useState<ProductData | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -712,61 +713,87 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
       </div>
 
       {/* Fixed Floating AI Question Section */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4 animate-fade-in">
-        <Card className="p-6 shadow-2xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/10 backdrop-blur-sm">
-          <div className="flex items-center gap-2 mb-4 justify-center">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Ask About This Product</h2>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+        {isAiMinimized ? (
+          // Minimized State - Small Floating Button
+          <div className="flex justify-center animate-fade-in">
+            <Button
+              onClick={() => setIsAiMinimized(false)}
+              className="rounded-full shadow-2xl h-14 px-6 bg-gradient-to-r from-primary to-primary/80 hover:scale-105 transition-all duration-300 group"
+              size="lg"
+            >
+              <MessageSquare className="w-5 h-5 mr-2 group-hover:animate-bounce-gentle" />
+              <span className="font-semibold">Ask About This Product</span>
+              <ChevronUp className="w-4 h-4 ml-2" />
+            </Button>
           </div>
-          
-          <div className="space-y-4">
-            {/* Question Input */}
-            <div className="flex gap-2">
-              <Input
-                placeholder={getExampleQuestion(displayData.category)}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
-                disabled={isAsking}
-                className="flex-1 bg-background/80 backdrop-blur-sm"
-              />
-              <Button 
-                onClick={handleAskQuestion}
-                disabled={isAsking || !question.trim()}
-                size="icon"
-                className="shadow-lg"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+        ) : (
+          // Maximized State - Full Card
+          <Card className="p-6 shadow-2xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/10 backdrop-blur-sm animate-scale-in relative">
+            {/* Minimize Button */}
+            <Button
+              onClick={() => setIsAiMinimized(true)}
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 rounded-full hover:bg-primary/10"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </Button>
+            
+            <div className="flex items-center gap-2 mb-4 justify-center">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">Ask About This Product</h2>
             </div>
-
-            {/* Loading State */}
-            {isAsking && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" />
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
-                </div>
-                <span>Searching for answers...</span>
+            
+            <div className="space-y-4">
+              {/* Question Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder={getExampleQuestion(displayData.category)}
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
+                  disabled={isAsking}
+                  className="flex-1 bg-background/80 backdrop-blur-sm"
+                />
+                <Button 
+                  onClick={handleAskQuestion}
+                  disabled={isAsking || !question.trim()}
+                  size="icon"
+                  className="shadow-lg"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
               </div>
-            )}
 
-            {/* Answers */}
-            {answers.length > 0 && (
-              <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-3 max-h-48 overflow-y-auto">
-                {answers.map((answer, idx) => (
-                  <div key={idx} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-semibold text-primary">{idx + 1}</span>
-                    </div>
-                    <p className="text-sm text-foreground pt-1">{answer}</p>
+              {/* Loading State */}
+              {isAsking && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
+                  <span>Searching for answers...</span>
+                </div>
+              )}
+
+              {/* Answers */}
+              {answers.length > 0 && (
+                <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-3 max-h-48 overflow-y-auto">
+                  {answers.map((answer, idx) => (
+                    <div key={idx} className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-primary">{idx + 1}</span>
+                      </div>
+                      <p className="text-sm text-foreground pt-1">{answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </section>
   );
