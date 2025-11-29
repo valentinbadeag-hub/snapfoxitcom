@@ -707,63 +707,66 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
                 </Button>
               </div>
             </Card>
-
-            {/* AI Conversation Section */}
-            <Card className="p-6 shadow-[var(--shadow-soft)] border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">Ask About This Product</h2>
-              </div>
-              
-              <div className="space-y-4">
-                {/* Question Input */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={getExampleQuestion(displayData.category)}
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
-                    disabled={isAsking}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={handleAskQuestion}
-                    disabled={isAsking || !question.trim()}
-                    size="icon"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Loading State */}
-                {isAsking && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
-                    </div>
-                    <span>Searching for answers...</span>
-                  </div>
-                )}
-
-                {/* Answers */}
-                {answers.length > 0 && (
-                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-3">
-                    {answers.map((answer, idx) => (
-                      <div key={idx} className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-primary">{idx + 1}</span>
-                        </div>
-                        <p className="text-sm text-foreground pt-1">{answer}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
           </div>
         </div>
+      </div>
+
+      {/* Fixed Floating AI Question Section */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4 animate-fade-in">
+        <Card className="p-6 shadow-2xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/10 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-4 justify-center">
+            <MessageSquare className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Ask About This Product</h2>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Question Input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder={getExampleQuestion(displayData.category)}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
+                disabled={isAsking}
+                className="flex-1 bg-background/80 backdrop-blur-sm"
+              />
+              <Button 
+                onClick={handleAskQuestion}
+                disabled={isAsking || !question.trim()}
+                size="icon"
+                className="shadow-lg"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Loading State */}
+            {isAsking && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.2s" }} />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce-gentle" style={{ animationDelay: "0.4s" }} />
+                </div>
+                <span>Searching for answers...</span>
+              </div>
+            )}
+
+            {/* Answers */}
+            {answers.length > 0 && (
+              <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 space-y-3 max-h-48 overflow-y-auto">
+                {answers.map((answer, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-semibold text-primary">{idx + 1}</span>
+                    </div>
+                    <p className="text-sm text-foreground pt-1">{answer}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
     </section>
   );
