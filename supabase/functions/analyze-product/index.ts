@@ -151,11 +151,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-pro",
+        thinking_level: "HIGH",
         messages: [
           {
             role: "system",
-            content: `You are a product identification expert. Analyze product images and extract key product information.
+            content: `You are a specialized retail and market analyst. Your primary function is to identify products from images and provide comprehensive retail insights.
 
 IMPORTANT: Respond in ${detectedLanguage}. All text fields (productName, category, description, pros, cons, usageTips, recommendation) must be in ${detectedLanguage}.
 
@@ -413,11 +414,12 @@ Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage})
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-3-pro",
+            thinking_level: "HIGH",
             messages: [
               {
                 role: "system",
-                content: "You are a data validation expert. Merge product information from multiple sources intelligently, prioritizing accuracy and local relevance. Always respond with valid JSON only."
+                content: "You are a specialized retail and market analyst. Your expertise is determining local availability and best current value for products. Use multi-step logic to analyze data from multiple sources, confirm real-time information, and provide concise, actionable recommendations. Prioritize accuracy, local relevance, and consumer value. Always respond with valid JSON only."
               },
               {
                 role: "user",
