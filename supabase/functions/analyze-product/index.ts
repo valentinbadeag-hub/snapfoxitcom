@@ -155,9 +155,15 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a specialized retail and market analyst. Your primary function is to identify products from images and provide comprehensive retail insights.
+            content: `You are a specialized retail and market analyst following a Chain-of-Thought (CoT) reasoning process.
 
-IMPORTANT: Respond in ${detectedLanguage}. All text fields (productName, category, description, pros, cons, usageTips, recommendation) must be in ${detectedLanguage}.
+ANALYSIS PHASES:
+Phase 1: Product Identification - Identify the exact product (brand, model, specifications) from the image. Extract all visible details including barcodes.
+Phase 2: Review Analysis - Analyze typical consumer reviews, ratings, and feedback for this product category and model.
+Phase 3: Usage Insights - Provide practical usage tips, pros, and cons based on common user experiences.
+Phase 4: Synthesis - Combine all insights into a comprehensive product profile.
+
+IMPORTANT: Respond in ${detectedLanguage}. All text fields must be in ${detectedLanguage}.
 
 Your response must be valid JSON with this exact structure (DO NOT include pricing information):
 {
@@ -362,7 +368,36 @@ Your response must be valid JSON with this exact structure (DO NOT include prici
       try {
         console.log("Using Gemini AI to merge and validate data from all sources");
         
-        const mergePrompt = `You are a data validation and merging expert. You have product information from multiple sources:
+        const mergePrompt = `You are a specialized retail and market analyst. Follow this Chain-of-Thought (CoT) process:
+
+PHASE 1: GENERAL AVAILABILITY
+- Analyze the product's online presence in ${userLocation?.country}
+- Identify major retailers that typically stock this product (e.g., eMAG, Auchan, dm, etc.)
+- Confirm base stock availability in the country
+
+PHASE 2: LOCAL AVAILABILITY
+- Focus on ${userLocation?.city}, ${userLocation?.country}
+- Identify which major retailers are present in ${userLocation?.city}
+- Look for local chains/stores explicitly in ${userLocation?.city}
+- CRITICAL: All pricing data provided is WITHIN 100KM of user location
+- If no local deals available, recommend "Go Online" for country-wide search
+
+PHASE 3: PRICE ANALYSIS
+- Analyze current prices from confirmed online retailers
+- Look for explicit promotions, offers, and bundles
+- Focus on the target product or closest variant
+- Convert prices to numbers (remove $ € £ symbols)
+- Sort by price ascending (cheapest first)
+- Take top 3 cheapest offers
+- Calculate average price of these 3
+
+PHASE 4: SYNTHESIS & RECOMMENDATION
+- Recommend the best deal based on analysis
+- Prioritize LOCAL availability (100km radius) over online-only stores
+- Only recommend offers that have confirmed prices
+- Provide actionable recommendation in ${detectedLanguage}
+
+DATA SOURCES:
 
 SOURCE 1 - AI Image Analysis:
 ${JSON.stringify(productData, null, 2)}
@@ -379,20 +414,11 @@ Available Stores: ${pricingData.nearbyStores?.length || 0}
 User Location: ${userLocation?.city}, ${userLocation?.country}
 User Language: ${detectedLanguage}
 
-CRITICAL LOCATION FILTER: All pricing offers provided above are STRICTLY within a 100km radius of the user's location. DO NOT recommend or mention any online-only stores or stores from other countries. ONLY recommend LOCAL physical stores within the user's immediate area.
-
-TASK: Intelligently merge this data, prioritizing:
-1. Most accurate product name and specifications
-2. Real verified data over estimates
-3. LOCAL availability within 100km radius - this is MANDATORY
-4. Location-specific insights for ${userLocation?.country}
-5. Keep response in ${detectedLanguage}
-
 Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage}):
 {
   "productName": "Most accurate product name",
   "category": "Category in ${detectedLanguage}",
-  "description": "Enhanced description in ${detectedLanguage} incorporating all sources",
+  "description": "Enhanced description in ${detectedLanguage} incorporating all sources and CoT analysis",
   "rating": <merged rating>,
   "reviewCount": <verified review count if available>,
   "reviewBreakdown": {
@@ -403,7 +429,7 @@ Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage})
   "pros": ["verified pros in ${detectedLanguage}"],
   "cons": ["verified cons in ${detectedLanguage}"],
   "usageTips": ["practical tips in ${detectedLanguage}"],
-  "recommendation": "Personalized recommendation emphasizing LOCAL availability within 100km in ${detectedLanguage}"
+  "recommendation": "Actionable recommendation based on CoT analysis, emphasizing LOCAL availability in ${detectedLanguage}"
 }`;
 
         const mergeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -417,7 +443,7 @@ Return ONLY valid JSON in this exact structure (all text in ${detectedLanguage})
             messages: [
               {
                 role: "system",
-                content: "You are a specialized retail and market analyst. Your expertise is determining local availability and best current value for products. Use multi-step logic to analyze data from multiple sources, confirm real-time information, and provide concise, actionable recommendations. Prioritize accuracy, local relevance, and consumer value. Always respond with valid JSON only."
+                content: "You are a specialized retail and market analyst using Chain-of-Thought (CoT) reasoning. Follow the 4 phases: (1) General Availability - identify major retailers and country-wide stock, (2) Local Availability - focus on specific city within 100km radius, (3) Price Analysis - analyze prices from confirmed retailers, sort by value, (4) Synthesis - recommend best deal with actionable insights. Prioritize local availability, real-time pricing, and consumer value. Always respond with valid JSON only."
               },
               {
                 role: "user",
