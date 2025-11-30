@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, Star, Heart, Share2, TrendingDown, Lightbulb, MessageSquare, ExternalLink, Send, ChevronUp, ChevronDown, Brain, AlertTriangle, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -113,6 +114,7 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
   const [isIntentLoading, setIsIntentLoading] = useState(false);
   const [intentData, setIntentData] = useState<IntentAnalysis | null>(null);
   const [isIntentMinimized, setIsIntentMinimized] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -497,7 +499,8 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
               <img 
                 src={productData.imageData} 
                 alt="Scanned product"
-                className="w-16 h-16 rounded-2xl object-cover shadow-[var(--shadow-soft)] border-2 border-primary/20"
+                onClick={() => setShowImageDialog(true)}
+                className="w-16 h-16 rounded-2xl object-cover shadow-[var(--shadow-soft)] border-2 border-primary/20 cursor-pointer hover:scale-105 transition-transform"
               />
             ) : (
               <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-[var(--shadow-soft)]">
@@ -935,6 +938,31 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
           </Card>
         )}
       </div>
+
+      {/* Image Popup Dialog */}
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden bg-transparent border-none shadow-none">
+          <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl">
+            {/* Blurred background */}
+            <div 
+              className="absolute inset-0 blur-3xl scale-110"
+              style={{
+                backgroundImage: `url(${productData.imageData})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+            {/* Main image */}
+            <div className="relative w-full h-full flex items-center justify-center p-6">
+              <img 
+                src={productData.imageData} 
+                alt="Scanned product"
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
