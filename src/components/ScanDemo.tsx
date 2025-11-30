@@ -17,6 +17,7 @@ interface ProductData {
   bestDealer: string;
   dealerDistance?: string;
   currency: string;
+  imageData?: string;
   userLocation?: {
     city: string;
     country: string;
@@ -207,11 +208,11 @@ const ScanDemo = () => {
 
       if (error) throw error;
 
-      // Save full product data to history
+      // Save full product data to history with image
       const scanItem = {
         id: Date.now().toString(),
         timestamp: Date.now(),
-        productData: data, // Store full product data
+        productData: { ...data, imageData }, // Store full product data with image
       };
 
       const existingHistory = localStorage.getItem('scanHistory');
@@ -222,7 +223,7 @@ const ScanDemo = () => {
       // Dispatch event for history component
       window.dispatchEvent(new Event('scanComplete'));
 
-      setProductData(data);
+      setProductData({ ...data, imageData });
       setShowResults(true);
       
       toast({

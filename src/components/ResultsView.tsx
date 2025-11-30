@@ -23,6 +23,7 @@ interface ProductData {
   averagePrice?: string;
   dealLink?: string;
   priceHistory?: any;
+  imageData?: string;
   userLocation?: {
     city: string;
     country: string;
@@ -492,9 +493,17 @@ const ResultsView = ({ productData, onBack }: ResultsViewProps) => {
           </div>
           
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-[var(--shadow-soft)]">
-              <span className="text-2xl">🛍️</span>
-            </div>
+            {productData.imageData ? (
+              <img 
+                src={productData.imageData} 
+                alt="Scanned product"
+                className="w-16 h-16 rounded-2xl object-cover shadow-[var(--shadow-soft)] border-2 border-primary/20"
+              />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-[var(--shadow-soft)]">
+                <span className="text-2xl">🛍️</span>
+              </div>
+            )}
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                 {displayData.productName}
